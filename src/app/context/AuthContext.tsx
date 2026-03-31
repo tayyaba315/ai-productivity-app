@@ -1,34 +1,37 @@
 import { createContext, useContext, useState } from 'react';
-import type {ReactNode} from 'react';
+
+interface User {
+  email: string;
+  name: string;
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: { name: string; email: string } | null;
+  user: User | null;
   login: (email: string, password: string) => void;
-  signup: (username: string, email: string, password: string) => void;
+  signup: (name: string, email: string, password: string) => void;
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
-  const login = (email: string, password: string) => {
-    // Mock login - in real app, would validate credentials
+  const login = (email: string, _password: string) => {
+    setUser({ email, name: email.split('@')[0] });
     setIsAuthenticated(true);
-    setUser({ name: 'KAT', email });
   };
 
-  const signup = (username: string, email: string, password: string) => {
-    // Mock signup - in real app, would create account
+  const signup = (name: string, email: string, _password: string) => {
+    setUser({ email, name });
     setIsAuthenticated(true);
-    setUser({ name: username, email });
   };
 
   const logout = () => {
-    setIsAuthenticated(false);
     setUser(null);
+    setIsAuthenticated(false);
   };
 
   return (
@@ -38,10 +41,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
+export const useAuth = () => useContext(AuthContext);
