@@ -1,22 +1,22 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
-import Layout from './components/Layout';
+import { AuthProvider, useAuth } from './app/context/AuthContext';
+import { ThemeProvider } from './app/context/ThemeContext';
+import Layout from './app/components/Layout';
 
 // Public Pages
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import SignUpPage from './pages/SignUpPage';
+import LandingPage from './app/pages/LandingPage';
+import LoginPage from './app/pages/LoginPage';
+import SignUpPage from './app/pages/SignUpPage';
 
 // Protected Pages
-import DashboardPage from './pages/DashboardPage';
-import JobFinderPage from './pages/JobFinderPage';
-import AvailabilityManagerPage from './pages/AvailabilityManagerPage';
-import CalendarPage from './pages/CalendarPage';
-import DailyNewsPage from './pages/DailyNewsPage';
-import SmartEmailPage from './pages/SmartEmailPage';
-import ClassroomPendingWorkPage from './pages/ClassroomPendingWorkPage';
-import SettingsPage from './pages/SettingsPage';
+import DashboardPage from './app/pages/DashboardPage';
+import JobFinderPage from './app/pages/JobFinderPage';
+import AvailabilityManagerPage from './app/pages/AvailabilityManagerPage';
+import CalendarPage from './app/pages/CalendarPage';
+import DailyNewsPage from './app/pages/DailyNewsPage';
+import SmartEmailPage from './app/pages/SmartEmailPage';
+import ClassroomPendingWorkPage from './app/pages/ClassroomPendingWorkPage';
+import SettingsPage from './app/pages/SettingsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
