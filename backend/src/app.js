@@ -3,10 +3,14 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
+import connectDB from "./config/db.js";  // ← add this
 import authRoutes from "./routes/authRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 
 const app = express();
+
+// Connect to database
+connectDB();  // ← add this
 
 app.use(cors());
 app.use(express.json());
