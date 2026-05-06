@@ -1,9 +1,28 @@
 import { useAuth } from '../app/context/AuthContext';
+import { useEffect, useMemo, useState } from 'react';
 import { Mail, BookOpen, Calendar, TrendingUp, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { Progress } from '../components/ui/progress';
+import { apiUrl } from '../lib/api';
+
+type Priority = 'high' | 'medium' | 'low';
+
+interface DashboardData {
+  metrics: {
+    emailsToday: number;
+    pendingAssignments: number;
+    scheduledMeetings: number;
+    productivityScore: number;
+  };
+  todayTasks: { title: string; time: string; priority: Priority }[];
+  upcomingDeadlines: { title: string; due: string; subject: string; progress: number }[];
+  aiSuggestions: string[];
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const getCurrentGreeting = () => {
     const hour = new Date().getHours();
@@ -12,30 +31,37 @@ export default function DashboardPage() {
     return 'Good Evening';
   };
 
-  const metrics = [
-    { label: 'Emails Today', value: '12', icon: Mail, color: 'from-[#7C3AED] to-[#8B5CF6]' },
-    { label: 'Pending Assignments', value: '5', icon: BookOpen, color: 'from-[#8B5CF6] to-[#7C3AED]' },
-    { label: 'Scheduled Meetings', value: '3', icon: Calendar, color: 'from-[#7C3AED] to-[#6D28D9]' },
-    { label: 'Productivity Score', value: '87%', icon: TrendingUp, color: 'from-[#8B5CF6] to-[#6D28D9]' },
-  ];
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const emailQuery = user?.email ? `?email=${encodeURIComponent(user.email)}` : '';
+        const res = await fetch(`${apiUrl('/dashboard/summary')}${emailQuery}`);
+        const responseData = await res.json();
+        if (!res.ok) throw new Error(responseData.msg || 'Failed to load dashboard');
+        setData(responseData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const todayTasks = [
-    { title: 'Complete Math Assignment', time: '2:00 PM', priority: 'high' },
-    { title: 'Team Meeting - CS Project', time: '4:30 PM', priority: 'medium' },
-    { title: 'Review Physics Notes', time: '6:00 PM', priority: 'low' },
-  ];
+    void loadDashboard();
+  }, [user?.email]);
 
-  const upcomingDeadlines = [
-    { title: 'Machine Learning Project', due: 'Feb 28', subject: 'Computer Science', progress: 75 },
-    { title: 'Research Paper Draft', due: 'Mar 2', subject: 'English', progress: 50 },
-    { title: 'Lab Report', due: 'Mar 5', subject: 'Chemistry', progress: 30 },
-  ];
+  const metrics = useMemo(() => {
+    if (!data) return [];
+    return [
+      { label: 'Emails Today', value: String(data.metrics.emailsToday), icon: Mail, color: 'from-[#7C3AED] to-[#8B5CF6]' },
+      { label: 'Pending Assignments', value: String(data.metrics.pendingAssignments), icon: BookOpen, color: 'from-[#8B5CF6] to-[#7C3AED]' },
+      { label: 'Scheduled Meetings', value: String(data.metrics.scheduledMeetings), icon: Calendar, color: 'from-[#7C3AED] to-[#6D28D9]' },
+      { label: 'Productivity Score', value: `${data.metrics.productivityScore}%`, icon: TrendingUp, color: 'from-[#8B5CF6] to-[#6D28D9]' },
+    ];
+  }, [data]);
 
-  const aiSuggestions = [
-    'Schedule study time for Machine Learning - exam in 2 weeks',
-    'You have 3 unread emails from professors',
-    'Consider working on low-priority tasks during your free slot tomorrow',
-  ];
+  const todayTasks = data?.todayTasks || [];
+  const upcomingDeadlines = data?.upcomingDeadlines || [];
+  const aiSuggestions = data?.aiSuggestions || [];
 
   return (
     <div className="space-y-8 max-w-7xl">
@@ -53,21 +79,29 @@ export default function DashboardPage() {
       </div>
 
       {/* Metrics Grid */}
+      {loading && (
+        <div className="text-muted-foreground">Loading dashboard...</div>
+      )}
+
+      {error && (
+        <div className="text-[#C2410C]">{error}</div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {metrics.map((metric, index) => {
           const Icon = metric.icon;
           return (
             <div
               key={index}
-              className="bg-[#1E1E1E] backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-2xl hover:shadow-[#7C3AED]/10 transition-all hover:-translate-y-1 border border-[#2A2A2A]"
+              className="bg-card rounded-2xl p-6 shadow-lg hover:shadow-2xl hover:shadow-[#7C3AED]/10 transition-all hover:-translate-y-1 border border-border"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className={`p-3 rounded-xl bg-gradient-to-br ${metric.color}`}>
                   <Icon className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <p className="text-3xl font-bold mb-1 text-[#EDEDED]">{metric.value}</p>
-              <p className="text-sm text-[#A3A3A3]">{metric.label}</p>
+              <p className="text-3xl font-bold mb-1 text-foreground">{metric.value}</p>
+              <p className="text-sm text-muted-foreground">{metric.label}</p>
             </div>
           );
         })}
@@ -76,24 +110,24 @@ export default function DashboardPage() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Today's Tasks */}
-        <div className="bg-[#1E1E1E] backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#2A2A2A]">
+        <div className="bg-card rounded-2xl p-6 shadow-lg border border-border">
           <div className="flex items-center gap-2 mb-6">
             <Clock className="w-5 h-5 text-[#7C3AED]" />
-            <h2 className="text-xl font-bold text-[#EDEDED]">Today's Tasks</h2>
+            <h2 className="text-xl font-bold text-foreground">Today's Tasks</h2>
           </div>
           <div className="space-y-4">
             {todayTasks.map((task, index) => (
               <div
                 key={index}
-                className="flex items-start gap-3 p-3 rounded-xl hover:bg-[#171717] transition-all cursor-pointer"
+                className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted transition-all cursor-pointer"
               >
                 <div className={`mt-1 w-2 h-2 rounded-full ${
                   task.priority === 'high' ? 'bg-[#C2410C]' :
                   task.priority === 'medium' ? 'bg-[#D97706]' : 'bg-[#8B5CF6]'
                 }`}></div>
                 <div className="flex-1">
-                  <p className="font-medium text-[#EDEDED]">{task.title}</p>
-                  <p className="text-sm text-[#A3A3A3]">{task.time}</p>
+                  <p className="font-medium text-foreground">{task.title}</p>
+                  <p className="text-sm text-muted-foreground">{task.time}</p>
                 </div>
               </div>
             ))}
@@ -101,25 +135,25 @@ export default function DashboardPage() {
         </div>
 
         {/* Upcoming Deadlines */}
-        <div className="bg-[#1E1E1E] backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#2A2A2A]">
+        <div className="bg-card rounded-2xl p-6 shadow-lg border border-border">
           <div className="flex items-center gap-2 mb-6">
             <AlertCircle className="w-5 h-5 text-[#8B5CF6]" />
-            <h2 className="text-xl font-bold text-[#EDEDED]">Upcoming Deadlines</h2>
+            <h2 className="text-xl font-bold text-foreground">Upcoming Deadlines</h2>
           </div>
           <div className="space-y-5">
             {upcomingDeadlines.map((item, index) => (
               <div key={index} className="space-y-2">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-medium text-[#EDEDED]">{item.title}</p>
-                    <p className="text-sm text-[#A3A3A3]">{item.subject}</p>
+                    <p className="font-medium text-foreground">{item.title}</p>
+                    <p className="text-sm text-muted-foreground">{item.subject}</p>
                   </div>
                   <span className="text-xs font-semibold text-[#7C3AED] bg-[#7C3AED]/10 px-2 py-1 rounded-lg">
                     {item.due}
                   </span>
                 </div>
                 <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-[#A3A3A3]">
+                  <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Progress</span>
                     <span>{item.progress}%</span>
                   </div>
@@ -134,16 +168,16 @@ export default function DashboardPage() {
         <div className="bg-gradient-to-br from-[#7C3AED]/10 to-[#8B5CF6]/10 rounded-2xl p-6 shadow-lg border border-[#7C3AED]/20">
           <div className="flex items-center gap-2 mb-6">
             <CheckCircle className="w-5 h-5 text-[#7C3AED]" />
-            <h2 className="text-xl font-bold text-[#EDEDED]">AI Suggestions</h2>
+            <h2 className="text-xl font-bold text-foreground">AI Suggestions</h2>
           </div>
           <div className="space-y-4">
             {aiSuggestions.map((suggestion, index) => (
               <div
                 key={index}
-                className="flex items-start gap-3 p-3 bg-[#1E1E1E]/60 rounded-xl border border-[#2A2A2A]"
+                className="flex items-start gap-3 p-3 bg-card rounded-xl border border-border"
               >
                 <div className="mt-1 w-2 h-2 rounded-full bg-[#7C3AED]"></div>
-                <p className="text-sm text-[#EDEDED]">{suggestion}</p>
+                <p className="text-sm text-foreground">{suggestion}</p>
               </div>
             ))}
           </div>
@@ -151,14 +185,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Calendar Preview Widget */}
-      <div className="bg-[#1E1E1E] backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#2A2A2A]">
-        <h2 className="text-xl font-bold mb-4 text-[#EDEDED]">This Week at a Glance</h2>
+      <div className="bg-card rounded-2xl p-6 shadow-lg border border-border">
+        <h2 className="text-xl font-bold mb-4 text-foreground">This Week at a Glance</h2>
         <div className="grid grid-cols-7 gap-2">
           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
             <div key={index} className="text-center">
-              <p className="text-xs text-[#A3A3A3] mb-2">{day}</p>
+              <p className="text-xs text-muted-foreground mb-2">{day}</p>
               <div className={`h-16 rounded-xl flex items-center justify-center ${
-                index === 3 ? 'bg-gradient-to-br from-[#7C3AED] to-[#8B5CF6] text-white font-bold shadow-lg shadow-[#7C3AED]/30' : 'bg-[#171717] text-[#A3A3A3]'
+                index === 3 ? 'bg-gradient-to-br from-[#7C3AED] to-[#8B5CF6] text-white font-bold shadow-lg shadow-[#7C3AED]/30' : 'bg-muted text-muted-foreground'
               }`}>
                 <span className="text-sm">{24 + index}</span>
               </div>

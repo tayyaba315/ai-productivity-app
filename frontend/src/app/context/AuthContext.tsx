@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { apiUrl } from '../../lib/api';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -11,41 +12,62 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AUTH_STORAGE_KEY = 'alignai.auth';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { token?: string; user?: { name: string; email: string } };
+      if (parsed?.token && parsed?.user?.email) {
+        setToken(parsed.token);
+        setUser(parsed.user);
+        setIsAuthenticated(true);
+      }
+    } catch (_err) {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+  }, []);
+
+  const persistSession = (nextToken: string, nextUser: { name: string; email: string }) => {
+    setToken(nextToken);
+    setUser(nextUser);
+    setIsAuthenticated(true);
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token: nextToken, user: nextUser }));
+  };
+
   const login = async (email: string, password: string) => {
-    const res = await fetch('http://localhost:5000/api/auth/login', {
+    const res = await fetch(apiUrl('/auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || 'Login failed');
-    setToken(data.token);
-    setIsAuthenticated(true);
-    setUser({ name: data.name, email });
+    persistSession(String(data.token || ''), { name: data.name || email.split('@')[0], email });
   };
 
   const signup = async (username: string, email: string, password: string) => {
-    const res = await fetch('http://localhost:5000/api/auth/register', {
+    const res = await fetch(apiUrl('/auth/register'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: username, email, password }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || 'Signup failed');
-    setIsAuthenticated(true);
-    setUser({ name: username, email });
+    persistSession(String(data.token || ''), { name: data.name || username, email: data.email || email });
   };
 
   const logout = () => {
     setIsAuthenticated(false);
     setUser(null);
     setToken(null);
+    localStorage.removeItem(AUTH_STORAGE_KEY);
   };
 
   return (

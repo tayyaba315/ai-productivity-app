@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Newspaper, ExternalLink } from 'lucide-react';
 import ImageWithFallback from '../components/figma/ImageWithFallback';
+import { apiUrl } from '../lib/api';
 
 interface NewsArticle {
   id: number;
@@ -14,61 +15,31 @@ interface NewsArticle {
 export default function DailyNewsPage() {
   const categories = ['All', 'Technology', 'Business', 'Education', 'AI', 'Science'];
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const articles: NewsArticle[] = [
-    {
-      id: 1,
-      title: 'AI Breakthrough: New Language Model Surpasses GPT-4',
-      summary: 'Researchers unveil a revolutionary AI model that demonstrates unprecedented understanding and reasoning capabilities across multiple domains.',
-      category: 'AI',
-      image: 'https://images.unsplash.com/photo-1579532537902-1e50099867b4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5JTIwbmV3cyUyMGRpZ2l0YWx8ZW58MXx8fHwxNzcyMDkwNzY4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      url: '#',
-    },
-    {
-      id: 2,
-      title: 'Tech Startups Raise Record $50B in Q1 2026',
-      summary: 'Venture capital investment in technology startups reaches all-time high as investors bet on AI and quantum computing innovations.',
-      category: 'Business',
-      image: 'https://images.unsplash.com/photo-1579532536935-619928decd08?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMG5ld3MlMjBmaW5hbmNlfGVufDF8fHx8MTc3MjE4MTA3OXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      url: '#',
-    },
-    {
-      id: 3,
-      title: 'Universities Adopt AI-Powered Learning Platforms',
-      summary: 'Major universities worldwide integrate artificial intelligence tools to personalize education and improve student outcomes.',
-      category: 'Education',
-      image: 'https://images.unsplash.com/photo-1602052294200-a8b75e03adfe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlZHVjYXRpb24lMjB1bml2ZXJzaXR5JTIwc3R1ZGVudHN8ZW58MXx8fHwxNzcyMTgxMDc5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      url: '#',
-    },
-    {
-      id: 4,
-      title: 'Quantum Computing Makes Commercial Debut',
-      summary: 'First commercial quantum computer becomes available for enterprise use, promising to revolutionize data processing and cryptography.',
-      category: 'Technology',
-      image: 'https://images.unsplash.com/photo-1579532537902-1e50099867b4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5JTIwbmV3cyUyMGRpZ2l0YWx8ZW58MXx8fHwxNzcyMDkwNzY4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      url: '#',
-    },
-    {
-      id: 5,
-      title: 'Student Entrepreneurs Launch Green Tech Initiative',
-      summary: 'College students create innovative sustainability platform that helps reduce campus carbon footprint by 40%.',
-      category: 'Education',
-      image: 'https://images.unsplash.com/photo-1602052294200-a8b75e03adfe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlZHVjYXRpb24lMjB1bml2ZXJzaXR5JTIwc3R1ZGVudHN8ZW58MXx8fHwxNzcyMTgxMDc5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      url: '#',
-    },
-    {
-      id: 6,
-      title: 'AI Assists Scientists in Drug Discovery',
-      summary: 'Machine learning algorithms accelerate pharmaceutical research, identifying promising drug candidates in record time.',
-      category: 'Science',
-      image: 'https://images.unsplash.com/photo-1579532537902-1e50099867b4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5JTIwbmV3cyUyMGRpZ2l0YWx8ZW58MXx8fHwxNzcyMDkwNzY4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      url: '#',
-    },
-  ];
+  useEffect(() => {
+    const loadNews = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(apiUrl(`/news?category=${encodeURIComponent(selectedCategory)}`));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.msg || 'Failed to fetch news');
+        setArticles(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch news');
+        setArticles([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredArticles = selectedCategory === 'All' 
-    ? articles 
-    : articles.filter(article => article.category === selectedCategory);
+    void loadNews();
+  }, [selectedCategory]);
+
+  const filteredArticles = useMemo(() => articles, [articles]);
 
   return (
     <div className="space-y-6">
@@ -103,6 +74,8 @@ export default function DailyNewsPage() {
       </div>
 
       {/* News Articles Grid */}
+      {loading && <p className="text-[#A3A3A3]">Loading news...</p>}
+      {error && <p className="text-[#C2410C]">{error}</p>}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredArticles.map((article) => (
           <div
@@ -131,7 +104,12 @@ export default function DailyNewsPage() {
               <p className="text-sm text-[#A3A3A3] line-clamp-3">
                 {article.summary}
               </p>
-              <button className="flex items-center gap-2 text-[#7C3AED] hover:text-[#8B5CF6] font-medium text-sm group/btn">
+              <button
+                onClick={() => {
+                  if (article.url) window.open(article.url, '_blank', 'noopener,noreferrer');
+                }}
+                className="flex items-center gap-2 text-[#7C3AED] hover:text-[#8B5CF6] font-medium text-sm group/btn"
+              >
                 <span>Read More</span>
                 <ExternalLink className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
               </button>

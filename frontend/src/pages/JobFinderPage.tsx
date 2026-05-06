@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Search, MapPin, DollarSign, Briefcase, Bookmark, Send, Trash2, Filter } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { apiUrl } from '../lib/api';
 
 interface Job {
-  id: number;
+  id: number | string;
+  job_id?: string;
   title: string;
   company: string;
   location: string;
   type: string;
   salary: string;
   description: string;
+  url?: string;
   saved: boolean;
 }
 
@@ -18,77 +21,49 @@ export default function JobFinderPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [locationFilter, setLocationFilter] = useState('all');
   const [jobTypeFilter, setJobTypeFilter] = useState('all');
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [jobs, setJobs] = useState<Job[]>([
-    {
-      id: 1,
-      title: 'Software Engineering Intern',
-      company: 'TechCorp Inc.',
-      location: 'San Francisco, CA',
-      type: 'Internship',
-      salary: '$25-35/hr',
-      description: 'Join our innovative team to work on cutting-edge web applications using React and Node.js.',
-      saved: false,
-    },
-    {
-      id: 2,
-      title: 'Data Science Research Assistant',
-      company: 'University Lab',
-      location: 'Remote',
-      type: 'Part-time',
-      salary: '$20-25/hr',
-      description: 'Assist with machine learning research projects and data analysis for academic studies.',
-      saved: true,
-    },
-    {
-      id: 3,
-      title: 'UI/UX Design Intern',
-      company: 'Creative Studios',
-      location: 'New York, NY',
-      type: 'Internship',
-      salary: '$22-30/hr',
-      description: 'Design beautiful and intuitive user interfaces for mobile and web applications.',
-      saved: false,
-    },
-    {
-      id: 4,
-      title: 'Marketing Coordinator',
-      company: 'StartupHub',
-      location: 'Austin, TX',
-      type: 'Full-time',
-      salary: '$45k-55k/year',
-      description: 'Coordinate marketing campaigns and social media strategy for growing startup.',
-      saved: false,
-    },
-    {
-      id: 5,
-      title: 'Teaching Assistant - Computer Science',
-      company: 'State University',
-      location: 'Boston, MA',
-      type: 'Part-time',
-      salary: '$18-22/hr',
-      description: 'Help students with programming assignments and conduct lab sessions.',
-      saved: true,
-    },
-  ]);
+  useEffect(() => {
+    const loadJobs = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams();
+        if (searchQuery.trim()) params.set('q', searchQuery.trim());
+        if (locationFilter !== 'all') params.set('location', locationFilter);
+        if (jobTypeFilter !== 'all') params.set('type', jobTypeFilter);
 
-  const toggleSave = (jobId: number) => {
+        const res = await fetch(apiUrl(`/jobs?${params.toString()}`));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.msg || 'Failed to fetch jobs');
+        setJobs(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch jobs');
+        setJobs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      void loadJobs();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery, locationFilter, jobTypeFilter]);
+
+  const toggleSave = (jobId: number | string) => {
     setJobs(jobs.map(job => 
       job.id === jobId ? { ...job, saved: !job.saved } : job
     ));
   };
 
-  const deleteJob = (jobId: number) => {
+  const deleteJob = (jobId: number | string) => {
     setJobs(jobs.filter(job => job.id !== jobId));
   };
 
-  const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         job.company.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLocation = locationFilter === 'all' || job.location.includes(locationFilter);
-    const matchesType = jobTypeFilter === 'all' || job.type === jobTypeFilter;
-    return matchesSearch && matchesLocation && matchesType;
-  });
+  const filteredJobs = useMemo(() => jobs, [jobs]);
 
   return (
     <div className="space-y-6">
@@ -150,6 +125,8 @@ export default function JobFinderPage() {
       </div>
 
       {/* Job Listings */}
+      {loading && <p className="text-[#A3A3A3]">Loading jobs...</p>}
+      {error && <p className="text-[#C2410C]">{error}</p>}
       <div className="space-y-4">
         {filteredJobs.map((job) => (
           <div
@@ -195,7 +172,12 @@ export default function JobFinderPage() {
                 <span className="text-sm">{job.saved ? 'Saved' : 'Save'}</span>
               </button>
               
-              <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white hover:shadow-lg hover:shadow-[#7C3AED]/30 transition-all">
+              <button
+                onClick={() => {
+                  if (job.url) window.open(job.url, '_blank', 'noopener,noreferrer');
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white hover:shadow-lg hover:shadow-[#7C3AED]/30 transition-all"
+              >
                 <Send className="w-4 h-4" />
                 <span className="text-sm">Apply</span>
               </button>

@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CheckSquare, AlertCircle, Filter } from 'lucide-react';
 import { Progress } from '../components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { apiUrl } from '../lib/api';
+import { useAuth } from '../app/context/AuthContext';
+import GoogleIntegrationIndicator from '../components/GoogleIntegrationIndicator';
 
 interface Task {
-  id: number;
+  id: string;
   category: string;
   title: string;
   dueDate: string;
@@ -14,65 +17,48 @@ interface Task {
 }
 
 export default function ClassroomPendingWorkPage() {
+  const { user } = useAuth();
   const [sortBy, setSortBy] = useState('deadline');
   const [filterPriority, setFilterPriority] = useState('all');
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const tasks: Task[] = [
-    {
-      id: 1,
-      category: 'Work Project',
-      title: 'Q1 Sales Report & Presentation',
-      dueDate: 'Feb 28, 2026',
-      priority: 'high',
-      progress: 75,
-      description: 'Prepare comprehensive sales analysis and present to stakeholders',
-    },
-    {
-      id: 2,
-      category: 'Personal',
-      title: 'Home Renovation Planning',
-      dueDate: 'Mar 2, 2026',
-      priority: 'high',
-      progress: 50,
-      description: 'Finalize renovation plans and get contractor quotes',
-    },
-    {
-      id: 3,
-      category: 'Finance',
-      title: 'Tax Document Preparation',
-      dueDate: 'Mar 5, 2026',
-      priority: 'medium',
-      progress: 30,
-      description: 'Gather and organize all tax documents for filing',
-    },
-    {
-      id: 4,
-      category: 'Health',
-      title: 'Fitness Program Setup',
-      dueDate: 'Mar 1, 2026',
-      priority: 'medium',
-      progress: 60,
-      description: 'Create workout schedule and meal plan',
-    },
-    {
-      id: 5,
-      category: 'Learning',
-      title: 'Online Course Completion',
-      dueDate: 'Mar 3, 2026',
-      priority: 'low',
-      progress: 20,
-      description: 'Finish remaining modules of online certification course',
-    },
-    {
-      id: 6,
-      category: 'Social',
-      title: 'Event Planning - Birthday Party',
-      dueDate: 'Mar 8, 2026',
-      priority: 'low',
-      progress: 10,
-      description: 'Plan and organize upcoming birthday celebration',
-    },
-  ];
+  useEffect(() => {
+    const fetchPending = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const emailQuery = user?.email ? `?email=${encodeURIComponent(user.email)}` : '';
+        const res = await fetch(`${apiUrl('/classroom/pending-work')}${emailQuery}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.detail || 'Failed to load classroom work');
+
+        const mapped: Task[] = (data.items || []).map((item: any, index: number) => {
+          const due = new Date(item.dueDate || Date.now() + (index + 1) * 86400000);
+          const daysLeft = Math.max(0, Math.ceil((due.getTime() - Date.now()) / 86400000));
+          const priority: Task['priority'] = daysLeft <= 2 ? 'high' : daysLeft <= 4 ? 'medium' : 'low';
+          const progress = item.status === 'completed' ? 100 : daysLeft <= 2 ? 35 : daysLeft <= 4 ? 20 : 10;
+          return {
+            id: String(item.id || `cw-${index}`),
+            category: String(item.course || 'Classroom'),
+            title: String(item.title || 'Untitled coursework'),
+            dueDate: due.toLocaleDateString(),
+            priority,
+            progress,
+            description: `Status: ${String(item.status || 'pending')}`,
+          };
+        });
+
+        setTasks(mapped);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load classroom work');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPending();
+  }, [user?.email]);
   const getPriorityBadgeColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -131,6 +117,7 @@ export default function ClassroomPendingWorkPage() {
         </div>
         <p className="text-lg text-white/90">Track and manage your tasks, projects and deadlines</p>
       </div>
+      <GoogleIntegrationIndicator />
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -207,6 +194,8 @@ export default function ClassroomPendingWorkPage() {
 
       {/* Task List */}
       <div className="space-y-4">
+        {loading && <p className="text-sm text-[#A3A3A3]">Loading classroom tasks...</p>}
+        {error && <p className="text-sm text-[#F87171]">{error}</p>}
         {filteredTasks.map((task) => (
           <div
             key={task.id}

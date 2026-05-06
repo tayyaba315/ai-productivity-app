@@ -1,72 +1,140 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Mail, Star, Calendar, CheckSquare, Sparkles, Clock } from 'lucide-react';
+import { apiUrl } from '../lib/api';
+import { useAuth } from '../app/context/AuthContext';
+import GoogleIntegrationIndicator from '../components/GoogleIntegrationIndicator';
 
 interface Email {
-  id: number;
+  id: string;
   from: string;
   subject: string;
   preview: string;
   time: string;
   read: boolean;
   starred: boolean;
-  aiSummary: string;
+  aiSummary?: string;
 }
 
 export default function SmartEmailPage() {
-  const [emails] = useState<Email[]>([
-    {
-      id: 1,
-      from: 'Sarah Johnson',
-      subject: 'Project Extension Request Approved',
-      preview: 'Hi, I reviewed your request and I\'m happy to grant you an extension...',
-      time: '10:30 AM',
-      read: false,
-      starred: false,
-      aiSummary: 'Extension approved for the project. New deadline: March 5th. No penalty for late submission.',
-    },
-    {
-      id: 2,
-      from: 'Career Hub',
-      subject: 'New Job Opportunities - Tech Companies',
-      preview: 'We have exciting new job postings from leading tech companies...',
-      time: '9:15 AM',
-      read: false,
-      starred: true,
-      aiSummary: '5 new positions available at Google, Microsoft, and Amazon. Application deadline: March 15th. Recommended to apply soon.',
-    },
-    {
-      id: 3,
-      from: 'Team Meeting',
-      subject: 'Meeting Time Change - Tomorrow',
-      preview: 'Hey everyone, we need to move tomorrow\'s meeting to 3 PM...',
-      time: 'Yesterday',
-      read: true,
-      starred: false,
-      aiSummary: 'Team meeting rescheduled from 2 PM to 3 PM tomorrow. Location remains the same (Conference Room 204).',
-    },
-    {
-      id: 4,
-      from: 'LinkedIn',
-      subject: 'You have 3 new connection requests',
-      preview: 'John Doe, Maria Garcia, and Alex Smith want to connect with you...',
-      time: 'Yesterday',
-      read: true,
-      starred: false,
-      aiSummary: 'Professional networking update. No immediate action required.',
-    },
-    {
-      id: 5,
-      from: 'Personal Reminder',
-      subject: 'Upcoming Tasks & Goals Review',
-      preview: 'This is a reminder to review your weekly goals and priorities...',
-      time: '2 days ago',
-      read: false,
-      starred: true,
-      aiSummary: 'Weekly review scheduled. Review goals and tasks. Plan next week\'s priorities.',
-    },
-  ]);
+  const { user } = useAuth();
+  const [emails, setEmails] = useState<Email[]>([]);
+  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [draftReply, setDraftReply] = useState('');
 
-  const [selectedEmail, setSelectedEmail] = useState<Email | null>(emails[0]);
+  const loadEmails = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const emailQuery = user?.email ? `?email=${encodeURIComponent(user.email)}` : '';
+      const res = await fetch(`${apiUrl('/emails')}${emailQuery}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || 'Failed to fetch emails');
+      const mapped: Email[] = (data || []).map((item: any) => ({
+        id: String(item.id),
+        from: String(item.from || 'Unknown sender'),
+        subject: String(item.subject || 'No subject'),
+        preview: String(item.preview || ''),
+        time: new Date(item.receivedAt || Date.now()).toLocaleString(),
+        read: Boolean(item.read),
+        starred: Boolean(item.starred),
+      }));
+      setEmails(mapped);
+      setSelectedEmail((prev) => mapped.find((m) => m.id === prev?.id) || mapped[0] || null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load emails');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEmails();
+  }, [user?.email]);
+
+  const toggleStar = async () => {
+    if (!selectedEmail) return;
+    setActionLoading(true);
+    try {
+      const nextStar = !selectedEmail.starred;
+      await fetch(apiUrl(`/emails/${selectedEmail.id}/star`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ starred: nextStar, email: user?.email || '' }),
+      });
+      setEmails((prev) => prev.map((e) => (e.id === selectedEmail.id ? { ...e, starred: nextStar } : e)));
+      setSelectedEmail({ ...selectedEmail, starred: nextStar });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const markRead = async (read = true) => {
+    if (!selectedEmail) return;
+    setActionLoading(true);
+    try {
+      await fetch(apiUrl(`/emails/${selectedEmail.id}/mark-read`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ read, email: user?.email || '' }),
+      });
+      setEmails((prev) => prev.map((e) => (e.id === selectedEmail.id ? { ...e, read } : e)));
+      setSelectedEmail({ ...selectedEmail, read });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const addToCalendar = async () => {
+    if (!selectedEmail) return;
+    setActionLoading(true);
+    setError('');
+    try {
+      const start = new Date(Date.now() + 2 * 3600 * 1000);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      const res = await fetch(apiUrl('/calendar/events'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Follow up: ${selectedEmail.subject}`,
+          start_at: start.toISOString(),
+          end_at: end.toISOString(),
+          location: '',
+          also_create_google: true,
+          email: user?.email || '',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || 'Failed to add event');
+      setError('Added a follow-up event to calendar.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to add calendar event');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const generateDraft = async () => {
+    if (!selectedEmail) return;
+    setActionLoading(true);
+    setDraftReply('');
+    try {
+      const res = await fetch(apiUrl(`/emails/${selectedEmail.id}/draft-reply`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `Draft a concise reply to "${selectedEmail.subject}" from ${selectedEmail.from}.`,
+          email: user?.email || '',
+        }),
+      });
+      const data = await res.json();
+      setDraftReply(String(data?.draft || ''));
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const unreadCount = emails.filter(email => !email.read).length;
 
@@ -80,6 +148,7 @@ export default function SmartEmailPage() {
         </div>
         <p className="text-lg text-white/90">AI-powered email management with smart summaries</p>
       </div>
+      <GoogleIntegrationIndicator />
 
       {/* Email Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -135,6 +204,8 @@ export default function SmartEmailPage() {
         <div className="lg:col-span-1 bg-[#1E1E1E] backdrop-blur-sm rounded-2xl shadow-lg border border-[#2A2A2A] overflow-hidden">
           <div className="p-4 border-b border-[#2A2A2A]">
             <h3 className="font-bold text-lg text-[#EDEDED]">Inbox</h3>
+            {loading && <p className="text-xs text-[#A3A3A3] mt-1">Loading...</p>}
+            {error && <p className="text-xs text-[#F87171] mt-1">{error}</p>}
           </div>
           <div className="divide-y divide-[#2A2A2A] max-h-[600px] overflow-y-auto">
             {emails.map((email) => (
@@ -183,7 +254,7 @@ export default function SmartEmailPage() {
                       <span>{selectedEmail.time}</span>
                     </div>
                   </div>
-                  <button className="p-2 rounded-lg hover:bg-[#171717] transition-all">
+                  <button onClick={toggleStar} disabled={actionLoading} className="p-2 rounded-lg hover:bg-[#171717] transition-all disabled:opacity-50">
                     <Star
                       className={`w-5 h-5 ${
                         selectedEmail.starred ? 'text-[#F59E0B] fill-current' : 'text-[#A3A3A3]'
@@ -213,15 +284,25 @@ export default function SmartEmailPage() {
               <div className="bg-[#1E1E1E] backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#2A2A2A]">
                 <h3 className="font-bold text-lg mb-4 text-[#EDEDED]">Quick Actions</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <button className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#171717] text-[#EDEDED] hover:bg-[#1E1E1E] border border-[#2A2A2A] transition-all">
+                  <button onClick={() => markRead(true)} disabled={actionLoading} className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#171717] text-[#EDEDED] hover:bg-[#1E1E1E] border border-[#2A2A2A] transition-all disabled:opacity-50">
                     <CheckSquare className="w-5 h-5" />
-                    <span>Mark as Done</span>
+                    <span>Mark as Read</span>
                   </button>
-                  <button className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white hover:shadow-lg hover:shadow-[#7C3AED]/30 transition-all">
+                  <button onClick={addToCalendar} disabled={actionLoading} className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white hover:shadow-lg hover:shadow-[#7C3AED]/30 transition-all disabled:opacity-50">
                     <Calendar className="w-5 h-5" />
                     <span>Add to Calendar</span>
                   </button>
                 </div>
+                <button onClick={generateDraft} disabled={actionLoading} className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#171717] text-[#EDEDED] border border-[#2A2A2A] hover:bg-[#1E1E1E] disabled:opacity-50">
+                  <Sparkles className="w-5 h-5" />
+                  <span>Generate Reply Draft</span>
+                </button>
+                {draftReply && (
+                  <div className="mt-3 p-3 rounded-xl bg-[#171717] border border-[#2A2A2A]">
+                    <p className="text-xs text-[#A3A3A3] mb-1">Draft Reply</p>
+                    <p className="text-sm text-[#EDEDED]">{draftReply}</p>
+                  </div>
+                )}
               </div>
             </>
           ) : (

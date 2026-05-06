@@ -9,13 +9,23 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email, password);
-    navigate('/dashboard');
+    setSubmitting(true);
+    setError('');
+    try {
+      await login(email, password);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -101,10 +111,12 @@ export default function LoginPage() {
 
             <button
               type="submit"
+              disabled={submitting}
               className="w-full py-3 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white font-semibold shadow-lg hover:shadow-xl hover:shadow-[#7C3AED]/30 hover:scale-[1.02] transition-all"
             >
-              Login
+              {submitting ? 'Logging in...' : 'Login'}
             </button>
+            {error && <p className="text-sm text-[#F87171]">{error}</p>}
           </form>
 
           {/* Divider */}
