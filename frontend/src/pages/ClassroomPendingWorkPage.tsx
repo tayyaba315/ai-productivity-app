@@ -10,6 +10,7 @@ interface Task {
   id: string;
   category: string;
   title: string;
+  dueAtIso: string | null;
   dueDate: string;
   priority: 'high' | 'medium' | 'low';
   progress: number;
@@ -20,9 +21,13 @@ export default function ClassroomPendingWorkPage() {
   const { user } = useAuth();
   const [sortBy, setSortBy] = useState('deadline');
   const [filterPriority, setFilterPriority] = useState('all');
+  const [only2026, setOnly2026] = useState(true);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isGoogleConnected, setIsGoogleConnected] = useState<boolean | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [progressDraftById, setProgressDraftById] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const fetchPending = async () => {
@@ -32,18 +37,27 @@ export default function ClassroomPendingWorkPage() {
         const emailQuery = user?.email ? `?email=${encodeURIComponent(user.email)}` : '';
         const res = await fetch(`${apiUrl('/classroom/pending-work')}${emailQuery}`);
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.detail || 'Failed to load classroom work');
+        if (!res.ok) {
+          setIsGoogleConnected(false);
+          throw new Error(data?.detail || 'Failed to load classroom work');
+        }
+
+        setIsGoogleConnected(Boolean(data?.connected));
 
         const mapped: Task[] = (data.items || []).map((item: any, index: number) => {
-          const due = new Date(item.dueDate || Date.now() + (index + 1) * 86400000);
-          const daysLeft = Math.max(0, Math.ceil((due.getTime() - Date.now()) / 86400000));
-          const priority: Task['priority'] = daysLeft <= 2 ? 'high' : daysLeft <= 4 ? 'medium' : 'low';
-          const progress = item.status === 'completed' ? 100 : daysLeft <= 2 ? 35 : daysLeft <= 4 ? 20 : 10;
+          const due = item?.dueDate ? new Date(item.dueDate) : null;
+          const hasValidDue = Boolean(due && !Number.isNaN(due.getTime()));
+          const daysLeft = hasValidDue ? Math.max(0, Math.ceil((due!.getTime() - Date.now()) / 86400000)) : null;
+          const priority: Task['priority'] =
+            daysLeft === null ? 'low' : daysLeft <= 2 ? 'high' : daysLeft <= 4 ? 'medium' : 'low';
+          const progress =
+            typeof item?.progress === 'number' ? item.progress : String(item.status || '').toLowerCase() === 'completed' ? 100 : 0;
           return {
             id: String(item.id || `cw-${index}`),
             category: String(item.course || 'Classroom'),
             title: String(item.title || 'Untitled coursework'),
-            dueDate: due.toLocaleDateString(),
+            dueAtIso: hasValidDue ? due!.toISOString() : null,
+            dueDate: hasValidDue ? due!.toLocaleDateString() : 'No due date',
             priority,
             progress,
             description: `Status: ${String(item.status || 'pending')}`,
@@ -53,12 +67,52 @@ export default function ClassroomPendingWorkPage() {
         setTasks(mapped);
       } catch (err: any) {
         setError(err.message || 'Failed to load classroom work');
+        setTasks([]);
       } finally {
         setLoading(false);
       }
     };
     fetchPending();
   }, [user?.email]);
+
+  const updateProgress = async (task: Task, nextProgress: number) => {
+    if (!user?.email) return;
+    if (!task.dueAtIso) {
+      setError('Cannot update progress for items without a due date.');
+      return;
+    }
+    setUpdatingId(task.id);
+    setError('');
+    try {
+      const clamped = Math.max(0, Math.min(100, Math.round(Number(nextProgress) || 0)));
+      const res = await fetch(apiUrl('/classroom/progress'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          coursework_id: task.id,
+          title: task.title,
+          due_date: task.dueAtIso,
+          progress: clamped,
+          completed: clamped >= 100,
+          email: user.email,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || 'Failed to update progress');
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id
+            ? { ...t, progress: clamped, description: `Status: ${clamped >= 100 ? 'completed' : 'pending'}` }
+            : t
+        )
+      );
+      setProgressDraftById((prev) => ({ ...prev, [task.id]: clamped }));
+    } catch (err: any) {
+      setError(err.message || 'Failed to update progress');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
   const getPriorityBadgeColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -85,8 +139,15 @@ export default function ClassroomPendingWorkPage() {
   };
 
   const sortedTasks = [...tasks].sort((a, b) => {
+    // Always keep fully completed work at the bottom.
+    const aDone = a.progress >= 100 ? 1 : 0;
+    const bDone = b.progress >= 100 ? 1 : 0;
+    if (aDone !== bDone) return aDone - bDone;
+
     if (sortBy === 'deadline') {
-      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      const aTime = a.dueAtIso ? new Date(a.dueAtIso).getTime() : Number.POSITIVE_INFINITY;
+      const bTime = b.dueAtIso ? new Date(b.dueAtIso).getTime() : Number.POSITIVE_INFINITY;
+      return aTime - bTime;
     } else if (sortBy === 'priority') {
       const priorityOrder = { high: 0, medium: 1, low: 2 };
       return priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -96,9 +157,13 @@ export default function ClassroomPendingWorkPage() {
     return 0;
   });
 
+  const filteredTasksByYear = only2026
+    ? sortedTasks.filter((t) => t.dueAtIso && new Date(t.dueAtIso).getFullYear() === 2026)
+    : sortedTasks;
+
   const filteredTasks = filterPriority === 'all'
-    ? sortedTasks
-    : sortedTasks.filter(a => a.priority === filterPriority);
+    ? filteredTasksByYear
+    : filteredTasksByYear.filter(a => a.priority === filterPriority);
 
   const stats = {
     total: tasks.length,
@@ -113,11 +178,20 @@ export default function ClassroomPendingWorkPage() {
       <div className="bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] rounded-3xl p-8 text-white shadow-xl">
         <div className="flex items-center gap-3 mb-2">
           <CheckSquare className="w-10 h-10" />
-          <h1 className="text-4xl font-bold">Tasks & Projects</h1>
+          <h1 className="text-4xl font-bold">Google Classroom</h1>
         </div>
-        <p className="text-lg text-white/90">Track and manage your tasks, projects and deadlines</p>
+        <p className="text-lg text-white/90">Pending coursework from your connected Classroom account</p>
       </div>
       <GoogleIntegrationIndicator />
+
+      {isGoogleConnected === false && !loading && (
+        <div className="bg-[#1E1E1E] rounded-2xl border border-[#2A2A2A] p-6">
+          <p className="text-[#EDEDED] font-semibold">Google Classroom isn’t connected.</p>
+          <p className="text-sm text-[#A3A3A3] mt-1">
+            Connect Google in Settings to load your real Classroom pending work.
+          </p>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -166,6 +240,11 @@ export default function ClassroomPendingWorkPage() {
             <Filter className="w-4 h-4 text-[#A3A3A3]" />
             <span className="text-sm font-medium text-[#EDEDED]">Sort & Filter:</span>
           </div>
+
+          <label className="flex items-center gap-2 text-sm text-[#EDEDED]">
+            <input type="checkbox" checked={only2026} onChange={(e) => setOnly2026(e.target.checked)} />
+            Only 2026 deadlines
+          </label>
 
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-48 rounded-xl bg-[#171717] border-[#2A2A2A] text-[#EDEDED]">
@@ -231,9 +310,44 @@ export default function ClassroomPendingWorkPage() {
                   <AlertCircle className="w-4 h-4" />
                   <span>Due: {task.dueDate}</span>
                 </div>
-                <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white text-sm hover:shadow-lg hover:shadow-[#7C3AED]/30 transition-all">
-                  Update Progress
-                </button>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={progressDraftById[task.id] ?? task.progress}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setProgressDraftById((prev) => ({ ...prev, [task.id]: val }));
+                    }}
+                    className="flex-1 accent-[#8B5CF6]"
+                    style={{ accentColor: '#8B5CF6' }}
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={progressDraftById[task.id] ?? task.progress}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setProgressDraftById((prev) => ({ ...prev, [task.id]: val }));
+                    }}
+                    className="w-20 h-10 rounded-lg bg-[#171717] border border-[#2A2A2A] px-2 text-[#EDEDED]"
+                  />
+                  <button
+                    onClick={() => updateProgress(task, progressDraftById[task.id] ?? task.progress)}
+                    disabled={updatingId === task.id}
+                    className="px-4 h-10 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white text-sm hover:shadow-lg hover:shadow-[#7C3AED]/30 transition-all disabled:opacity-60"
+                  >
+                    Save
+                  </button>
+                </div>
+                <p className="text-xs text-[#A3A3A3]">Set progress (0–100). Saved to DB.</p>
               </div>
             </div>
           </div>
@@ -243,7 +357,9 @@ export default function ClassroomPendingWorkPage() {
       {filteredTasks.length === 0 && (
         <div className="bg-[#1E1E1E] backdrop-blur-sm rounded-2xl p-12 text-center shadow-lg border border-[#2A2A2A]">
           <CheckSquare className="w-16 h-16 text-[#2A2A2A] mx-auto mb-4" />
-          <p className="text-xl text-[#A3A3A3]">No tasks found matching your criteria</p>
+          <p className="text-xl text-[#A3A3A3]">
+            {isGoogleConnected === false ? 'Connect Google to see your Classroom work.' : 'No pending Classroom work found.'}
+          </p>
         </div>
       )}
     </div>

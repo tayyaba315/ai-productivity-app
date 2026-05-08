@@ -6,6 +6,7 @@ import Layout from './app/components/Layout';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
+import OAuthGooglePage from './pages/OAuthGooglePage';
 // Protected Pages
 import DashboardPage from './pages/DashboardPage';
 import JobFinderPage from './pages/JobFinderPage';
@@ -32,6 +33,7 @@ function AppRoutes() {
       <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/signup" element={<PublicRoute><SignUpPage /></PublicRoute>} />
+      <Route path="/oauth/google" element={<PublicRoute><OAuthGooglePage /></PublicRoute>} />
 
       {/* Protected Routes */}
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

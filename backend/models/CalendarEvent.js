@@ -9,6 +9,12 @@ const calendarEventSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    googleEventId: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
     title: { type: String, required: true, trim: true },
     category: { type: String, default: "meeting" },
     start_at: { type: Date, required: true },

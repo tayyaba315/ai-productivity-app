@@ -53,7 +53,7 @@ export default function GoogleIntegrationIndicator() {
         <span>
           {status.connected
             ? `Google connected${status.email ? ` as ${status.email}` : ''}`
-            : 'Using fallback data (Google not connected)'}
+            : 'Google not connected'}
         </span>
       </div>
       <p className="mt-1 text-xs text-[#A3A3A3]">

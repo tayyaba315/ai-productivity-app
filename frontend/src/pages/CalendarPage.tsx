@@ -21,6 +21,7 @@ export default function CalendarPage() {
   const [error, setError] = useState('');
   const [isAddingEvent, setIsAddingEvent] = useState(false);
   const [formTitle, setFormTitle] = useState('');
+  const [formCategory, setFormCategory] = useState<Event['category']>('meeting');
   const [formDate, setFormDate] = useState('');
   const [formTime, setFormTime] = useState('');
   const [formDuration, setFormDuration] = useState(60);
@@ -52,7 +53,9 @@ export default function CalendarPage() {
           id: String(item.id || `event-${index}`),
           title: String(item.title || item.summary || 'Event'),
           date: start.toISOString(),
-          category: 'meeting',
+          category: (item.category === 'assignment' || item.category === 'personal' || item.category === 'meeting')
+            ? item.category
+            : 'meeting',
           time: start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
       });
@@ -94,6 +97,7 @@ export default function CalendarPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: formTitle.trim(),
+          category: formCategory,
           start_at: startAt.toISOString(),
           end_at: endAt.toISOString(),
           location: formLocation.trim(),
@@ -112,12 +116,15 @@ export default function CalendarPage() {
           id: String(created.id),
           title: String(created.title || formTitle),
           date: start.toISOString(),
-          category: 'meeting',
+          category: (created.category === 'assignment' || created.category === 'personal' || created.category === 'meeting')
+            ? created.category
+            : formCategory,
           time: start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
       setIsAddingEvent(false);
       setFormTitle('');
+      setFormCategory('meeting');
       setFormDate('');
       setFormTime('');
       setFormDuration(60);
@@ -130,13 +137,38 @@ export default function CalendarPage() {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'meeting':
-        return 'bg-[#8B5CF6]';
+        return 'bg-[#8B5CF6]'; // purple
       case 'assignment':
-        return 'bg-[#7C3AED]';
+        return 'bg-[#F59E0B]'; // amber
       case 'personal':
-        return 'bg-[#6D28D9]';
+        return 'bg-[#10B981]'; // emerald
       default:
         return 'bg-gray-500';
+    }
+  };
+
+  const getCategoryAccent = (category: string) => {
+    switch (category) {
+      case 'meeting':
+        return {
+          border: 'border-l-[#8B5CF6]',
+          bg: 'bg-[#8B5CF6]/10',
+        };
+      case 'assignment':
+        return {
+          border: 'border-l-[#F59E0B]',
+          bg: 'bg-[#F59E0B]/10',
+        };
+      case 'personal':
+        return {
+          border: 'border-l-[#10B981]',
+          bg: 'bg-[#10B981]/10',
+        };
+      default:
+        return {
+          border: 'border-l-gray-500',
+          bg: 'bg-white/5',
+        };
     }
   };
 
@@ -181,6 +213,15 @@ export default function CalendarPage() {
           {isAddingEvent && (
             <div className="mb-5 p-4 rounded-xl bg-[#171717] border border-[#2A2A2A] grid grid-cols-1 md:grid-cols-2 gap-3">
               <input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Event title" className="h-10 rounded-lg bg-[#1E1E1E] border border-[#2A2A2A] px-3 text-[#EDEDED]" />
+              <select
+                value={formCategory}
+                onChange={(e) => setFormCategory(e.target.value as Event['category'])}
+                className="h-10 rounded-lg bg-[#1E1E1E] border border-[#2A2A2A] px-3 text-[#EDEDED]"
+              >
+                <option value="meeting">Meeting</option>
+                <option value="assignment">Assignment</option>
+                <option value="personal">Personal</option>
+              </select>
               <input value={formLocation} onChange={(e) => setFormLocation(e.target.value)} placeholder="Location (optional)" className="h-10 rounded-lg bg-[#1E1E1E] border border-[#2A2A2A] px-3 text-[#EDEDED]" />
               <input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} className="h-10 rounded-lg bg-[#1E1E1E] border border-[#2A2A2A] px-3 text-[#EDEDED]" />
               <input type="time" value={formTime} onChange={(e) => setFormTime(e.target.value)} className="h-10 rounded-lg bg-[#1E1E1E] border border-[#2A2A2A] px-3 text-[#EDEDED]" />
@@ -200,11 +241,11 @@ export default function CalendarPage() {
               <span className="text-[#A3A3A3]">Meetings</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#7C3AED]"></div>
+              <div className="w-3 h-3 rounded-full bg-[#F59E0B]"></div>
               <span className="text-[#A3A3A3]">Assignments</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#6D28D9]"></div>
+              <div className="w-3 h-3 rounded-full bg-[#10B981]"></div>
               <span className="text-[#A3A3A3]">Personal</span>
             </div>
           </div>
@@ -268,9 +309,12 @@ export default function CalendarPage() {
             </h3>
             <div className="space-y-3">
               {upcomingEvents.map((event) => (
+                (() => {
+                  const accent = getCategoryAccent(event.category);
+                  return (
                 <div
                   key={event.id}
-                  className="p-3 rounded-xl bg-[#171717] hover:bg-[#1E1E1E] transition-all cursor-pointer"
+                  className={`p-3 rounded-xl border-l-4 ${accent.border} ${accent.bg} hover:bg-[#1E1E1E] transition-all cursor-pointer`}
                 >
                   <div className="flex items-start gap-3">
                     <div className={`w-2 h-2 rounded-full ${getCategoryColor(event.category)} mt-2`}></div>
@@ -280,6 +324,8 @@ export default function CalendarPage() {
                     </div>
                   </div>
                 </div>
+                  );
+                })()
               ))}
               {loading && <p className="text-sm text-[#A3A3A3]">Loading events...</p>}
             </div>
@@ -294,13 +340,24 @@ export default function CalendarPage() {
               <div className="space-y-2">
                 {getEventsForDate(selectedDate).length > 0 ? (
                   getEventsForDate(selectedDate).map((event) => (
+                    (() => {
+                      const accent = getCategoryAccent(event.category);
+                      return (
                     <div
                       key={event.id}
-                      className="p-3 rounded-xl bg-[#1E1E1E]/60 border border-[#2A2A2A]"
+                      className={`p-3 rounded-xl border-l-4 ${accent.border} ${accent.bg} border border-[#2A2A2A]`}
                     >
-                      <p className="font-medium text-[#EDEDED] text-sm">{event.title}</p>
+                      <div className="flex items-start gap-2">
+                        <div className={`w-2 h-2 rounded-full ${getCategoryColor(event.category)} mt-2`}></div>
+                        <div className="flex-1">
+                          <p className="font-medium text-[#EDEDED] text-sm">{event.title}</p>
+                          <p className="text-xs text-[#A3A3A3] mt-1">{event.time}</p>
+                        </div>
+                      </div>
                       <p className="text-xs text-[#A3A3A3] mt-1">{event.time}</p>
                     </div>
+                      );
+                    })()
                   ))
                 ) : (
                   <p className="text-sm text-[#A3A3A3]">No events scheduled</p>

@@ -23,6 +23,7 @@ export default function SmartEmailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [draftReply, setDraftReply] = useState('');
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
 
   const loadEmails = async () => {
     setLoading(true);
@@ -31,8 +32,12 @@ export default function SmartEmailPage() {
       const emailQuery = user?.email ? `?email=${encodeURIComponent(user.email)}` : '';
       const res = await fetch(`${apiUrl('/emails')}${emailQuery}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.detail || 'Failed to fetch emails');
-      const mapped: Email[] = (data || []).map((item: any) => ({
+      if (!res.ok) {
+        setIsGoogleConnected(Boolean(data?.connected));
+        throw new Error(data?.detail || 'Failed to fetch emails');
+      }
+      setIsGoogleConnected(Boolean(data?.connected));
+      const mapped: Email[] = ((data?.emails || []) as any[]).map((item: any) => ({
         id: String(item.id),
         from: String(item.from || 'Unknown sender'),
         subject: String(item.subject || 'No subject'),
@@ -40,11 +45,14 @@ export default function SmartEmailPage() {
         time: new Date(item.receivedAt || Date.now()).toLocaleString(),
         read: Boolean(item.read),
         starred: Boolean(item.starred),
+        aiSummary: String(item.preview || '').slice(0, 140) || 'No preview available for this email.',
       }));
       setEmails(mapped);
       setSelectedEmail((prev) => mapped.find((m) => m.id === prev?.id) || mapped[0] || null);
     } catch (err: any) {
       setError(err.message || 'Failed to load emails');
+      setEmails([]);
+      setSelectedEmail(null);
     } finally {
       setLoading(false);
     }
@@ -208,6 +216,13 @@ export default function SmartEmailPage() {
             {error && <p className="text-xs text-[#F87171] mt-1">{error}</p>}
           </div>
           <div className="divide-y divide-[#2A2A2A] max-h-[600px] overflow-y-auto">
+            {!loading && !emails.length && (
+              <div className="p-4 text-sm text-[#A3A3A3]">
+                {isGoogleConnected
+                  ? 'No Gmail messages found for this account.'
+                  : 'Connect Google in Settings to load your real Gmail inbox.'}
+              </div>
+            )}
             {emails.map((email) => (
               <div
                 key={email.id}

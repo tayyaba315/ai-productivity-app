@@ -9,6 +9,18 @@ const taskSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    externalSource: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    externalId: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
     title: { type: String, required: true, trim: true },
     description: { type: String, default: "" },
     due_date: { type: Date, required: true },
@@ -18,6 +30,8 @@ const taskSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+taskSchema.index({ userEmail: 1, externalSource: 1, externalId: 1 }, { unique: true, sparse: true });
 
 const Task = mongoose.model("Task", taskSchema);
 

@@ -62,6 +62,23 @@ export default function DashboardPage() {
   const todayTasks = data?.todayTasks || [];
   const upcomingDeadlines = data?.upcomingDeadlines || [];
   const aiSuggestions = data?.aiSuggestions || [];
+  const weekDays = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + index);
+      const isToday = date.toDateString() === now.toDateString();
+      return {
+        label: date.toLocaleDateString(undefined, { weekday: 'short' }),
+        dateNumber: date.getDate(),
+        isToday,
+      };
+    });
+  }, []);
 
   return (
     <div className="space-y-8 max-w-7xl">
@@ -188,13 +205,13 @@ export default function DashboardPage() {
       <div className="bg-card rounded-2xl p-6 shadow-lg border border-border">
         <h2 className="text-xl font-bold mb-4 text-foreground">This Week at a Glance</h2>
         <div className="grid grid-cols-7 gap-2">
-          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-            <div key={index} className="text-center">
-              <p className="text-xs text-muted-foreground mb-2">{day}</p>
+          {weekDays.map((day) => (
+            <div key={`${day.label}-${day.dateNumber}`} className="text-center">
+              <p className="text-xs text-muted-foreground mb-2">{day.label}</p>
               <div className={`h-16 rounded-xl flex items-center justify-center ${
-                index === 3 ? 'bg-gradient-to-br from-[#7C3AED] to-[#8B5CF6] text-white font-bold shadow-lg shadow-[#7C3AED]/30' : 'bg-muted text-muted-foreground'
+                day.isToday ? 'bg-gradient-to-br from-[#7C3AED] to-[#8B5CF6] text-white font-bold shadow-lg shadow-[#7C3AED]/30' : 'bg-muted text-muted-foreground'
               }`}>
-                <span className="text-sm">{24 + index}</span>
+                <span className="text-sm">{day.dateNumber}</span>
               </div>
             </div>
           ))}

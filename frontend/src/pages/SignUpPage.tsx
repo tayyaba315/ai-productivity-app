@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { Brain, Sparkles, User, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../app/context/AuthContext';
 import { Input } from '../components/ui/input';
+import { apiUrl } from '../lib/api';
 
 export default function SignUpPage() {
   const [username, setUsername] = useState('');
@@ -27,6 +28,21 @@ export default function SignUpPage() {
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Signup failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch(apiUrl('/auth/google/start?next=/dashboard'));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || 'Failed to start Google signup');
+      if (data?.auth_url) window.location.href = data.auth_url;
+    } catch (err: any) {
+      setError(err.message || 'Google signup failed');
     } finally {
       setSubmitting(false);
     }
@@ -149,6 +165,15 @@ export default function SignUpPage() {
             <span className="text-sm text-[#A3A3A3]">OR</span>
             <div className="flex-1 h-px bg-[#2A2A2A]"></div>
           </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleSignup}
+            disabled={submitting}
+            className="w-full py-3 rounded-xl bg-[#171717] text-[#EDEDED] border border-[#2A2A2A] hover:bg-[#1E1E1E] transition-all disabled:opacity-60"
+          >
+            Continue with Google
+          </button>
 
           {/* Login Link */}
           <div className="text-center">

@@ -4,6 +4,7 @@ import { Brain, Sparkles, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../app/context/AuthContext';
 import { Input } from '../components/ui/input';
 import { Checkbox } from '../components/ui/checkbox';
+import { apiUrl } from '../lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -23,6 +24,21 @@ export default function LoginPage() {
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch(apiUrl('/auth/google/start?next=/dashboard'));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || 'Failed to start Google login');
+      if (data?.auth_url) window.location.href = data.auth_url;
+    } catch (err: any) {
+      setError(err.message || 'Google login failed');
     } finally {
       setSubmitting(false);
     }
@@ -125,6 +141,15 @@ export default function LoginPage() {
             <span className="text-sm text-[#A3A3A3]">OR</span>
             <div className="flex-1 h-px bg-[#2A2A2A]"></div>
           </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={submitting}
+            className="w-full py-3 rounded-xl bg-[#171717] text-[#EDEDED] border border-[#2A2A2A] hover:bg-[#1E1E1E] transition-all disabled:opacity-60"
+          >
+            Continue with Google
+          </button>
 
           {/* Sign Up Link */}
           <div className="text-center">

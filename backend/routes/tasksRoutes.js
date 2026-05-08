@@ -21,6 +21,8 @@ router.post("/", async (req, res) => {
 
   const task = await Task.create({
     userEmail,
+    externalSource: String(req.body?.externalSource || ""),
+    externalId: String(req.body?.externalId || ""),
     title: String(req.body?.title || "Untitled"),
     description: String(req.body?.description || ""),
     due_date: dueDate,

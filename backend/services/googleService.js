@@ -15,12 +15,13 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/classroom.coursework.me.readonly",
 ];
 
-const getRedirectUri = () => {
+const getRedirectUri = (override) => {
+  if (override) return override;
   if (process.env.GOOGLE_REDIRECT_URL_NODE) {
     return process.env.GOOGLE_REDIRECT_URL_NODE;
   }
   const backendOrigin = process.env.BACKEND_ORIGIN || "http://localhost:5000";
-  return `${backendOrigin}/api/integrations/google/callback`;
+  return `${backendOrigin}/api/auth/google/callback`; // ← fixed
 };
 
 const parseJsonSafe = async (response) => {
@@ -38,12 +39,12 @@ export const getRequestedUserEmail = (req) => {
   return fromQuery || fromBody || fromHeader || "";
 };
 
-export const buildGoogleAuthUrl = ({ state }) => {
+export const buildGoogleAuthUrl = ({ state, redirectUri }) => {
   const clientId = process.env.GOOGLE_CLIENT_ID || "";
-  const redirectUri = getRedirectUri();
+  const resolvedRedirectUri = getRedirectUri(redirectUri);
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: redirectUri,
+    redirect_uri: resolvedRedirectUri,
     response_type: "code",
     scope: GOOGLE_SCOPES.join(" "),
     access_type: "offline",
@@ -54,13 +55,13 @@ export const buildGoogleAuthUrl = ({ state }) => {
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 };
 
-export const exchangeCodeForTokens = async (code) => {
-  const redirectUri = getRedirectUri();
+export const exchangeCodeForTokens = async (code, { redirectUri } = {}) => {
+  const resolvedRedirectUri = getRedirectUri(redirectUri);
   const body = new URLSearchParams({
     code,
     client_id: process.env.GOOGLE_CLIENT_ID || "",
     client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
-    redirect_uri: redirectUri,
+    redirect_uri: resolvedRedirectUri,
     grant_type: "authorization_code",
   });
   const response = await fetch(GOOGLE_TOKEN_URL, {
