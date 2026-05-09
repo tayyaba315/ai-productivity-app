@@ -86,7 +86,7 @@ router.get("/summary", (req, res) => {
 
     const localProductivityScore = Math.min(
       100,
-      55 + Math.round((emailsTodayCount + localTodayTasks.length + (5 - Math.min(5, pendingAssignmentsCount))) * 5)
+      40 + Math.round(emailsTodayCount * 1 + localTodayTasks.length * 5 + Math.max(0, 5 - pendingAssignmentsCount) * 5)
     );
 
     const localPayload = fallback({
@@ -154,7 +154,11 @@ router.get("/summary", (req, res) => {
         progress: Math.max(20, 80 - index * 20),
       }));
 
-      const productivityScore = Math.min(100, 60 + Math.round((emailCount + meetings.length + coursesList.length + localPayload.metrics.pendingAssignments) / 2));
+      const pendingAssignments = Math.max(coursesList.length, localPayload.metrics.pendingAssignments);
+      const productivityScore = Math.min(
+        100, 
+        40 + Math.round((emailCount * 0.5) + (meetings.length * 3) + (coursesList.length * 1) + (Math.max(0, 10 - pendingAssignments) * 2))
+      );
 
       return res.json({
         metrics: {

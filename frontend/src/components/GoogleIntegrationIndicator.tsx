@@ -43,12 +43,12 @@ export default function GoogleIntegrationIndicator() {
   }, [user?.email]);
 
   return (
-    <div className="bg-[#1E1E1E] rounded-2xl border border-[#2A2A2A] px-4 py-3">
-      <div className="flex items-center gap-2 text-sm text-[#EDEDED]">
+    <div className="bg-card rounded-2xl border border-border px-4 py-3">
+      <div className="flex items-center gap-2 text-sm text-foreground">
         {status.connected ? (
-          <Cloud className="w-4 h-4 text-[#8B5CF6]" />
+          <Cloud className="w-4 h-4 text-primary/80" />
         ) : (
-          <CloudOff className="w-4 h-4 text-[#A3A3A3]" />
+          <CloudOff className="w-4 h-4 text-muted-foreground" />
         )}
         <span>
           {status.connected
@@ -56,12 +56,12 @@ export default function GoogleIntegrationIndicator() {
             : 'Google not connected'}
         </span>
       </div>
-      <p className="mt-1 text-xs text-[#A3A3A3]">
+      <p className="mt-1 text-xs text-muted-foreground">
         Last sync:{' '}
         {status.updated_at ? new Date(status.updated_at).toLocaleString() : 'Not available yet'}
       </p>
       {loading && (
-        <p className="mt-1 text-xs text-[#A3A3A3] flex items-center gap-1">
+        <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
           <RefreshCw className="w-3 h-3 animate-spin" />
           Checking Google status...
         </p>

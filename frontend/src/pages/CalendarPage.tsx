@@ -137,11 +137,11 @@ export default function CalendarPage() {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'meeting':
-        return 'bg-[#8B5CF6]'; // purple
-      case 'assignment':
-        return 'bg-[#F59E0B]'; // amber
+        return 'bg-primary/80';
       case 'personal':
-        return 'bg-[#10B981]'; // emerald
+        return 'bg-emerald-500';
+      case 'assignment':
+        return 'bg-amber-500';
       default:
         return 'bg-gray-500';
     }
@@ -151,18 +151,18 @@ export default function CalendarPage() {
     switch (category) {
       case 'meeting':
         return {
-          border: 'border-l-[#8B5CF6]',
-          bg: 'bg-[#8B5CF6]/10',
-        };
-      case 'assignment':
-        return {
-          border: 'border-l-[#F59E0B]',
-          bg: 'bg-[#F59E0B]/10',
+          border: 'border-l-primary',
+          bg: 'bg-primary/10',
         };
       case 'personal':
         return {
-          border: 'border-l-[#10B981]',
-          bg: 'bg-[#10B981]/10',
+          border: 'border-l-emerald-500',
+          bg: 'bg-emerald-500/10',
+        };
+      case 'assignment':
+        return {
+          border: 'border-l-amber-500',
+          bg: 'bg-amber-500/10',
         };
       default:
         return {
@@ -175,7 +175,7 @@ export default function CalendarPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] rounded-3xl p-8 text-white shadow-xl">
+      <div className="bg-gradient-to-r from-primary to-primary/80 rounded-3xl p-8 text-white shadow-xl">
         <h1 className="text-4xl font-bold mb-2">Calendar</h1>
         <p className="text-lg text-white/90">Manage your schedule and upcoming events</p>
       </div>
@@ -183,26 +183,26 @@ export default function CalendarPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar Grid */}
-        <div className="lg:col-span-2 bg-[#1E1E1E] backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#2A2A2A]">
+        <div className="lg:col-span-2 bg-card backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-border">
           {/* Calendar Header */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-[#EDEDED]">{currentMonth}</h2>
+            <h2 className="text-2xl font-bold text-foreground">{currentMonth}</h2>
             <div className="flex gap-2">
               <button
                 onClick={() => setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-                className="p-2 rounded-xl hover:bg-[#171717] transition-all text-[#A3A3A3]"
+                className="p-2 rounded-xl hover:bg-background transition-all text-muted-foreground"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                className="p-2 rounded-xl hover:bg-[#171717] transition-all text-[#A3A3A3]"
+                className="p-2 rounded-xl hover:bg-background transition-all text-muted-foreground"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setIsAddingEvent((prev) => !prev)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white hover:shadow-lg hover:shadow-[#7C3AED]/30 transition-all ml-2"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white hover:shadow-lg hover:shadow-primary/30 transition-all ml-2"
               >
                 <Plus className="w-4 h-4" />
                 <span className="text-sm">Add Event</span>
@@ -211,42 +211,42 @@ export default function CalendarPage() {
           </div>
           {error && <p className="text-sm text-red-400 mb-3">{error}</p>}
           {isAddingEvent && (
-            <div className="mb-5 p-4 rounded-xl bg-[#171717] border border-[#2A2A2A] grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Event title" className="h-10 rounded-lg bg-[#1E1E1E] border border-[#2A2A2A] px-3 text-[#EDEDED]" />
+            <div className="mb-5 p-4 rounded-xl bg-background border border-border grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Event title" className="h-10 rounded-lg bg-card border border-border px-3 text-foreground" />
               <select
                 value={formCategory}
                 onChange={(e) => setFormCategory(e.target.value as Event['category'])}
-                className="h-10 rounded-lg bg-[#1E1E1E] border border-[#2A2A2A] px-3 text-[#EDEDED]"
+                className="h-10 rounded-lg bg-card border border-border px-3 text-foreground"
               >
                 <option value="meeting">Meeting</option>
                 <option value="assignment">Assignment</option>
                 <option value="personal">Personal</option>
               </select>
-              <input value={formLocation} onChange={(e) => setFormLocation(e.target.value)} placeholder="Location (optional)" className="h-10 rounded-lg bg-[#1E1E1E] border border-[#2A2A2A] px-3 text-[#EDEDED]" />
-              <input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} className="h-10 rounded-lg bg-[#1E1E1E] border border-[#2A2A2A] px-3 text-[#EDEDED]" />
-              <input type="time" value={formTime} onChange={(e) => setFormTime(e.target.value)} className="h-10 rounded-lg bg-[#1E1E1E] border border-[#2A2A2A] px-3 text-[#EDEDED]" />
-              <input type="number" min={15} step={15} value={formDuration} onChange={(e) => setFormDuration(Number(e.target.value || 60))} placeholder="Duration minutes" className="h-10 rounded-lg bg-[#1E1E1E] border border-[#2A2A2A] px-3 text-[#EDEDED]" />
-              <label className="flex items-center gap-2 text-sm text-[#EDEDED]">
+              <input value={formLocation} onChange={(e) => setFormLocation(e.target.value)} placeholder="Location (optional)" className="h-10 rounded-lg bg-card border border-border px-3 text-foreground" />
+              <input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} className="h-10 rounded-lg bg-card border border-border px-3 text-foreground" />
+              <input type="time" value={formTime} onChange={(e) => setFormTime(e.target.value)} className="h-10 rounded-lg bg-card border border-border px-3 text-foreground" />
+              <input type="number" min={15} step={15} value={formDuration} onChange={(e) => setFormDuration(Number(e.target.value || 60))} placeholder="Duration minutes" className="h-10 rounded-lg bg-card border border-border px-3 text-foreground" />
+              <label className="flex items-center gap-2 text-sm text-foreground">
                 <input type="checkbox" checked={alsoCreateGoogle} onChange={(e) => setAlsoCreateGoogle(e.target.checked)} />
                 Also create in Google Calendar
               </label>
-              <button onClick={submitEvent} className="h-10 rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white font-medium">Save Event</button>
+              <button onClick={submitEvent} className="h-10 rounded-lg bg-gradient-to-r from-primary to-primary/80 text-white font-medium">Save Event</button>
             </div>
           )}
 
           {/* Legend */}
           <div className="flex gap-4 mb-4 text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#8B5CF6]"></div>
-              <span className="text-[#A3A3A3]">Meetings</span>
+              <div className="w-3 h-3 rounded-full bg-primary/80"></div>
+              <span className="text-muted-foreground">Meetings</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#F59E0B]"></div>
-              <span className="text-[#A3A3A3]">Assignments</span>
+              <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+              <span className="text-sm text-muted-foreground">Assignments</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#10B981]"></div>
-              <span className="text-[#A3A3A3]">Personal</span>
+              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+              <span className="text-muted-foreground">Personal</span>
             </div>
           </div>
 
@@ -254,7 +254,7 @@ export default function CalendarPage() {
           <div className="grid grid-cols-7 gap-2">
             {/* Day Headers */}
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-center font-semibold text-[#A3A3A3] text-sm py-2">
+              <div key={day} className="text-center font-semibold text-muted-foreground text-sm py-2">
                 {day}
               </div>
             ))}
@@ -277,11 +277,11 @@ export default function CalendarPage() {
                   onClick={() => setSelectedDate(day)}
                   className={`
                     aspect-square rounded-xl p-2 cursor-pointer transition-all relative
-                    ${isToday ? 'bg-gradient-to-br from-[#7C3AED] to-[#8B5CF6] text-white' : 'bg-[#171717] hover:bg-[#1E1E1E]'}
-                    ${selectedDate === day && !isToday ? 'ring-2 ring-[#7C3AED]' : ''}
+                    ${isToday ? 'bg-gradient-to-br from-primary to-primary/80 text-white' : 'bg-background hover:bg-card'}
+                    ${selectedDate === day && !isToday ? 'ring-2 ring-primary' : ''}
                   `}
                 >
-                  <span className={`text-sm font-medium ${isToday ? 'text-white' : 'text-[#EDEDED]'}`}>
+                  <span className={`text-sm font-medium ${isToday ? 'text-white' : 'text-foreground'}`}>
                     {day}
                   </span>
                   {hasEvents && (
@@ -302,10 +302,10 @@ export default function CalendarPage() {
 
         {/* Upcoming Events Sidebar */}
         <div className="space-y-4">
-          <div className="bg-[#1E1E1E] backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#2A2A2A]">
+          <div className="bg-card backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-border">
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-[#7C3AED]" />
-              <span className="text-[#EDEDED]">Upcoming Events</span>
+              <Clock className="w-5 h-5 text-primary" />
+              <span className="text-foreground">Upcoming Events</span>
             </h3>
             <div className="space-y-3">
               {upcomingEvents.map((event) => (
@@ -314,27 +314,27 @@ export default function CalendarPage() {
                   return (
                 <div
                   key={event.id}
-                  className={`p-3 rounded-xl border-l-4 ${accent.border} ${accent.bg} hover:bg-[#1E1E1E] transition-all cursor-pointer`}
+                  className={`p-3 rounded-xl border-l-4 ${accent.border} ${accent.bg} hover:bg-card transition-all cursor-pointer`}
                 >
                   <div className="flex items-start gap-3">
                     <div className={`w-2 h-2 rounded-full ${getCategoryColor(event.category)} mt-2`}></div>
                     <div className="flex-1">
-                      <p className="font-medium text-[#EDEDED] text-sm">{event.title}</p>
-                      <p className="text-xs text-[#A3A3A3] mt-1">{new Date(event.date).toLocaleDateString()} • {event.time}</p>
+                      <p className="font-medium text-foreground text-sm">{event.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{new Date(event.date).toLocaleDateString()} • {event.time}</p>
                     </div>
                   </div>
                 </div>
                   );
                 })()
               ))}
-              {loading && <p className="text-sm text-[#A3A3A3]">Loading events...</p>}
+              {loading && <p className="text-sm text-muted-foreground">Loading events...</p>}
             </div>
           </div>
 
           {/* Selected Date Details */}
           {selectedDate && (
-            <div className="bg-gradient-to-br from-[#7C3AED]/20 to-[#8B5CF6]/20 rounded-2xl p-6 shadow-lg border border-[#7C3AED]/30">
-              <h3 className="text-lg font-bold mb-4 text-[#EDEDED]">
+            <div className="bg-gradient-to-br from-primary/20 to-primary/80/20 rounded-2xl p-6 shadow-lg border border-primary/30">
+              <h3 className="text-lg font-bold mb-4 text-foreground">
                 {new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDate).toLocaleDateString()}
               </h3>
               <div className="space-y-2">
@@ -345,22 +345,22 @@ export default function CalendarPage() {
                       return (
                     <div
                       key={event.id}
-                      className={`p-3 rounded-xl border-l-4 ${accent.border} ${accent.bg} border border-[#2A2A2A]`}
+                      className={`p-3 rounded-xl border-l-4 ${accent.border} ${accent.bg} border border-border`}
                     >
                       <div className="flex items-start gap-2">
                         <div className={`w-2 h-2 rounded-full ${getCategoryColor(event.category)} mt-2`}></div>
                         <div className="flex-1">
-                          <p className="font-medium text-[#EDEDED] text-sm">{event.title}</p>
-                          <p className="text-xs text-[#A3A3A3] mt-1">{event.time}</p>
+                          <p className="font-medium text-foreground text-sm">{event.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{event.time}</p>
                         </div>
                       </div>
-                      <p className="text-xs text-[#A3A3A3] mt-1">{event.time}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{event.time}</p>
                     </div>
                       );
                     })()
                   ))
                 ) : (
-                  <p className="text-sm text-[#A3A3A3]">No events scheduled</p>
+                  <p className="text-sm text-muted-foreground">No events scheduled</p>
                 )}
               </div>
             </div>

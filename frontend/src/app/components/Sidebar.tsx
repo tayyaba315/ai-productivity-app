@@ -34,7 +34,7 @@ const navItems = [
 export default function Sidebar() {
   const location = useLocation();
   const { logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { mode, toggleMode } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -45,40 +45,40 @@ export default function Sidebar() {
           isExpanded ? 'w-64' : 'w-16'
         }`}
       >
-        <div className="h-full theme-bg-surface rounded-2xl shadow-2xl border theme-border flex flex-col overflow-hidden">
+        <div className="h-full bg-background rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden">
           
           {/* Toggle Button */}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="absolute -right-3 top-8 w-6 h-6 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl border-2 border-[#7C3AED] transition-all z-10"
+            className="absolute -right-3 top-8 w-6 h-6 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl border-2 border-primary transition-all z-10"
           >
             {isExpanded ? (
-              <ChevronLeft className="w-4 h-4 text-[#7C3AED]" />
+              <ChevronLeft className="w-4 h-4 text-primary" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-[#7C3AED]" />
+              <ChevronRight className="w-4 h-4 text-primary" />
             )}
           </button>
 
           {/* Logo Section */}
-          <div className="p-4 border-b theme-border">
+          <div className="p-4 border-b border-border">
             <Link 
               to="/dashboard" 
               className="flex items-center gap-3 group"
               onClick={() => !isExpanded && setIsExpanded(true)}
             >
               <div className="relative flex-shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] rounded-xl blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                <div className="relative bg-gradient-to-br from-[#7C3AED] to-[#8B5CF6] p-2 rounded-xl">
-                  <Brain className="w-6 h-6 text-white" />
+                <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80 rounded-xl blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                <div className="relative bg-primary p-2 rounded-xl">
+                  <Brain className="w-6 h-6 text-primary-foreground" />
                   <Sparkles className="w-3 h-3 text-yellow-300 absolute -top-1 -right-1" />
                 </div>
               </div>
               {isExpanded && (
                 <div className="overflow-hidden">
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] bg-clip-text text-transparent whitespace-nowrap">
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent whitespace-nowrap">
                     AllignAI
                   </h1>
-                  <p className="text-xs theme-text-secondary whitespace-nowrap">Smart Productivity</p>
+                  <p className="text-xs text-muted-foreground whitespace-nowrap">Smart Productivity</p>
                 </div>
               )}
             </Link>
@@ -100,15 +100,15 @@ export default function Sidebar() {
                     group relative overflow-hidden
                     ${isExpanded ? '' : 'justify-center'}
                     ${isActive 
-                      ? 'bg-[#7C3AED] text-white shadow-lg shadow-[#7C3AED]/30' 
-                      : 'theme-text-secondary hover:bg-purple-200/40 dark:hover:bg-[#1E1E1E] theme-text-primary'
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' 
+                      : 'text-muted-foreground hover:bg-primary/10 dark:hover:bg-card text-foreground'
                     }
                   `}
                   title={!isExpanded ? item.name : ''}
                 >
                   {/* Glow effect for active item */}
                   {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] blur-xl opacity-20 animate-pulse"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80 blur-xl opacity-20 animate-pulse"></div>
                   )}
                   
                   <Icon className={`w-5 h-5 relative z-10 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110 transition-transform'}`} />
@@ -119,7 +119,7 @@ export default function Sidebar() {
                   
                   {/* Hover glow */}
                   {!isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#7C3AED]/20 to-[#8B5CF6]/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
                   )}
                 </Link>
               );
@@ -127,27 +127,27 @@ export default function Sidebar() {
           </nav>
 
           {/* Theme Toggle & Logout */}
-          <div className="p-3 border-t theme-border space-y-1">
+          <div className="p-3 border-t border-border space-y-1">
             <button
-              onClick={toggleTheme}
-              className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl theme-text-secondary hover:bg-purple-200/40 dark:hover:bg-[#1E1E1E] hover:theme-text-primary transition-all duration-200 group ${
+              onClick={toggleMode}
+              className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-muted-foreground hover:bg-primary/10 dark:hover:bg-card hover:text-foreground transition-all duration-200 group ${
                 isExpanded ? '' : 'justify-center'
               }`}
-              title={!isExpanded ? (theme === 'light' ? 'Dark Mode' : 'Light Mode') : ''}
+              title={!isExpanded ? (mode === 'light' ? 'Dark Mode' : 'Light Mode') : ''}
             >
-              {theme === 'light' ? (
+              {mode === 'light' ? (
                 <Moon className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" />
               ) : (
                 <Sun className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" />
               )}
               {isExpanded && (
-                <span className="text-sm whitespace-nowrap">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+                <span className="text-sm whitespace-nowrap">{mode === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
               )}
             </button>
             
             <button
               onClick={logout}
-              className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl theme-text-secondary hover:bg-red-100 dark:hover:bg-[#C2410C]/20 hover:text-red-600 dark:hover:text-[#EA580C] transition-all duration-200 group ${
+              className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-muted-foreground hover:bg-red-100 dark:hover:bg-destructive/20 hover:text-red-600 dark:hover:text-destructive transition-all duration-200 group ${
                 isExpanded ? '' : 'justify-center'
               }`}
               title={!isExpanded ? 'Logout' : ''}
@@ -170,11 +170,11 @@ export default function Sidebar() {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #2A2A2A;
+          background: var(--border);
           border-radius: 2px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #7C3AED;
+          background: var(--primary);
         }
       `}</style>
     </>

@@ -26,18 +26,18 @@ export default function OAuthGooglePage() {
   }, [completeOAuth, navigate, payload.email, payload.name, payload.next, payload.token]);
 
   return (
-    <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center p-6">
-      <div className="bg-[#1E1E1E] rounded-2xl border border-[#2A2A2A] p-6 text-center w-full max-w-md">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="bg-card rounded-2xl border border-border p-6 text-center w-full max-w-md">
         {!error ? (
           <>
-            <p className="text-[#EDEDED] font-semibold">Finishing Google sign-in…</p>
-            <p className="text-sm text-[#A3A3A3] mt-2">You’ll be redirected automatically.</p>
+            <p className="text-foreground font-semibold">Finishing Google sign-in…</p>
+            <p className="text-sm text-muted-foreground mt-2">You’ll be redirected automatically.</p>
           </>
         ) : (
           <>
-            <p className="text-[#F87171] font-semibold">{error}</p>
+            <p className="text-destructive font-semibold">{error}</p>
             <button
-              className="mt-4 px-4 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white"
+              className="mt-4 px-4 py-2 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white"
               onClick={() => navigate('/login')}
             >
               Back to Login

@@ -44,7 +44,7 @@ export default function DailyNewsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] rounded-3xl p-8 text-white shadow-xl">
+      <div className="bg-gradient-to-r from-primary to-primary/80 rounded-3xl p-8 text-white shadow-xl">
         <div className="flex items-center gap-3 mb-2">
           <Newspaper className="w-10 h-10" />
           <h1 className="text-4xl font-bold">Daily News</h1>
@@ -53,7 +53,7 @@ export default function DailyNewsPage() {
       </div>
 
       {/* Category Filters */}
-      <div className="bg-[#1E1E1E] backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#2A2A2A]">
+      <div className="bg-card backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-border">
         <div className="flex flex-wrap gap-3">
           {categories.map((category) => (
             <button
@@ -62,8 +62,8 @@ export default function DailyNewsPage() {
               className={`
                 px-5 py-2 rounded-xl transition-all font-medium
                 ${selectedCategory === category
-                  ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-lg'
-                  : 'bg-[#171717] text-[#A3A3A3] hover:bg-[#1E1E1E]'
+                  ? 'bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg'
+                  : 'bg-background text-muted-foreground hover:bg-card'
                 }
               `}
             >
@@ -74,13 +74,13 @@ export default function DailyNewsPage() {
       </div>
 
       {/* News Articles Grid */}
-      {loading && <p className="text-[#A3A3A3]">Loading news...</p>}
-      {error && <p className="text-[#C2410C]">{error}</p>}
+      {loading && <p className="text-muted-foreground">Loading news...</p>}
+      {error && <p className="text-destructive">{error}</p>}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredArticles.map((article) => (
           <div
             key={article.id}
-            className="bg-[#1E1E1E] backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-[#7C3AED]/10 transition-all overflow-hidden border border-[#2A2A2A] group cursor-pointer"
+            className="bg-card backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-primary/10 transition-all overflow-hidden border border-border group cursor-pointer"
           >
             {/* Article Image */}
             <div className="relative h-48 overflow-hidden">
@@ -90,7 +90,7 @@ export default function DailyNewsPage() {
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
               />
               <div className="absolute top-3 right-3">
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#7C3AED]/90 backdrop-blur-sm text-white">
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-primary/90 backdrop-blur-sm text-white">
                   {article.category}
                 </span>
               </div>
@@ -98,17 +98,17 @@ export default function DailyNewsPage() {
 
             {/* Article Content */}
             <div className="p-5 space-y-3">
-              <h3 className="text-lg font-bold text-[#EDEDED] group-hover:text-[#8B5CF6] transition-colors line-clamp-2">
+              <h3 className="text-lg font-bold text-foreground group-hover:text-primary/80 transition-colors line-clamp-2">
                 {article.title}
               </h3>
-              <p className="text-sm text-[#A3A3A3] line-clamp-3">
+              <p className="text-sm text-muted-foreground line-clamp-3">
                 {article.summary}
               </p>
               <button
                 onClick={() => {
                   if (article.url) window.open(article.url, '_blank', 'noopener,noreferrer');
                 }}
-                className="flex items-center gap-2 text-[#7C3AED] hover:text-[#8B5CF6] font-medium text-sm group/btn"
+                className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium text-sm group/btn"
               >
                 <span>Read More</span>
                 <ExternalLink className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
@@ -119,9 +119,9 @@ export default function DailyNewsPage() {
       </div>
 
       {filteredArticles.length === 0 && (
-        <div className="bg-[#1E1E1E] backdrop-blur-sm rounded-2xl p-12 text-center shadow-lg border border-[#2A2A2A]">
-          <Newspaper className="w-16 h-16 text-[#2A2A2A] mx-auto mb-4" />
-          <p className="text-xl text-[#A3A3A3]">No articles found in this category</p>
+        <div className="bg-card backdrop-blur-sm rounded-2xl p-12 text-center shadow-lg border border-border">
+          <Newspaper className="w-16 h-16 text-border mx-auto mb-4" />
+          <p className="text-xl text-muted-foreground">No articles found in this category</p>
         </div>
       )}
     </div>

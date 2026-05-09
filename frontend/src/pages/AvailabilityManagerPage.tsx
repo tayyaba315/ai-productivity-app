@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Send, Bot, User } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Send, Bot, User, Loader2 } from 'lucide-react';
 import { Input } from '../components/ui/input';
+import { useAuth } from '../app/context/AuthContext';
 
 interface Message {
   id: number;
@@ -10,6 +11,7 @@ interface Message {
 }
 
 export default function AvailabilityManagerPage() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -19,65 +21,95 @@ export default function AvailabilityManagerPage() {
     },
   ]);
   const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
+
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!inputText.trim() || isLoading) return;
+
+    const userText = inputText.trim();
+    setInputText('');
 
     // Add user message
     const userMessage: Message = {
       id: messages.length + 1,
-      text: inputText,
+      text: userText,
       sender: 'user',
       timestamp: new Date(),
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Pass the previous messages to maintain conversation history
+      const history = messages.map(m => ({
+        sender: m.sender,
+        text: m.text
+      }));
+
+      const currentDate = new Date().toLocaleString();
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      const response = await fetch('http://localhost:5000/api/assistant/availability/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-email': user?.email || '',
+        },
+        body: JSON.stringify({
+          message: userText,
+          history: history,
+          email: user?.email || '',
+          currentDate: currentDate,
+          timeZone: timeZone,
+        }),
+      });
+
+      const data = await response.json();
+
       const aiResponse: Message = {
         id: messages.length + 2,
-        text: generateAIResponse(inputText),
+        text: data.reply,
         sender: 'ai',
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, aiResponse]);
-    }, 1000);
-
-    setInputText('');
-  };
-
-  const generateAIResponse = (userInput: string): string => {
-    const input = userInput.toLowerCase();
-    
-    if (input.includes('free') || input.includes('available')) {
-      return "Based on your calendar, you have free time slots on:\n• Tomorrow at 2:00 PM - 4:00 PM\n• Friday at 10:00 AM - 12:00 PM\n• Saturday all day\n\nWould you like me to schedule something during any of these times?";
+      setMessages((prev) => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Error fetching AI response:', error);
+      const errorResponse: Message = {
+        id: messages.length + 2,
+        text: "I'm sorry, I couldn't connect to the server. Please check your connection and try again.",
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorResponse]);
+    } finally {
+      setIsLoading(false);
     }
-    
-    if (input.includes('schedule') || input.includes('meeting')) {
-      return "I can help you schedule that! What time works best for you? I'll make sure it doesn't conflict with your classes and assignments.";
-    }
-    
-    if (input.includes('busy') || input.includes('workload')) {
-      return "Looking at your schedule, you have 5 assignments due this week and 3 meetings scheduled. I recommend:\n• Blocking 2 hours tomorrow for the Math assignment\n• Moving your Friday study session to Saturday morning\n• Taking a break on Sunday to recharge";
-    }
-    
-    return "I understand. Let me help you with that. Based on your current schedule and commitments, I can suggest the best times for your activities and help you maintain a healthy work-life balance.";
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] rounded-3xl p-8 text-white shadow-xl">
+      <div className="bg-gradient-to-r from-primary to-primary/80 rounded-3xl p-8 text-white shadow-xl">
         <h1 className="text-4xl font-bold mb-2">AI Availability Assistant</h1>
         <p className="text-lg text-white/90">Chat with AI to manage your schedule and availability</p>
       </div>
 
       {/* Chat Container */}
-      <div className="bg-[#1E1E1E] backdrop-blur-sm rounded-2xl shadow-xl border border-[#2A2A2A] overflow-hidden">
+      <div className="bg-card backdrop-blur-sm rounded-2xl shadow-xl border border-border overflow-hidden">
         {/* Chat Messages */}
-        <div className="h-[600px] overflow-y-auto p-6 space-y-4">
+        <div className="h-[600px] overflow-y-auto p-6 space-y-4 scroll-smooth">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -100,41 +132,54 @@ export default function AvailabilityManagerPage() {
               <div
                 className={`max-w-[70%] rounded-2xl p-4 ${
                   message.sender === 'ai'
-                    ? 'bg-[#171717] border border-[#2A2A2A]'
-                    : 'bg-gradient-to-br from-[#7C3AED] to-[#8B5CF6] text-white'
+                    ? 'bg-background border border-border'
+                    : 'bg-gradient-to-br from-primary to-primary/80 text-white'
                 }`}
               >
-                <p className={`whitespace-pre-line ${
-                  message.sender === 'ai' ? 'text-[#EDEDED]' : 'text-white'
+                <div className={`whitespace-pre-line ${
+                  message.sender === 'ai' ? 'text-foreground' : 'text-white'
                 }`}>
                   {message.text}
-                </p>
+                </div>
                 <p className={`text-xs mt-2 ${
-                  message.sender === 'ai' ? 'text-[#A3A3A3]' : 'text-white/70'
+                  message.sender === 'ai' ? 'text-muted-foreground' : 'text-white/70'
                 }`}>
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
             </div>
           ))}
+          {isLoading && (
+            <div className="flex gap-3 flex-row">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-blue-500">
+                <Bot className="w-5 h-5 text-white" />
+              </div>
+              <div className="max-w-[70%] rounded-2xl p-4 bg-background border border-border flex items-center">
+                <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+                <span className="ml-2 text-foreground text-sm">Thinking...</span>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-[#2A2A2A] p-4 bg-[#171717]">
+        <div className="border-t border-border p-4 bg-background">
           <form onSubmit={handleSendMessage} className="flex gap-3">
             <Input
               type="text"
               placeholder="Ask me about your availability, schedule meetings, or get time management tips..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              className="flex-1 h-12 bg-[#1E1E1E] border-[#2A2A2A] text-[#EDEDED] rounded-xl"
+              className="flex-1 h-12 bg-card border-border text-foreground rounded-xl focus:ring-primary"
+              disabled={isLoading}
             />
             <button
               type="submit"
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white hover:shadow-lg hover:shadow-[#7C3AED]/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!inputText.trim()}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              disabled={!inputText.trim() || isLoading}
             >
-              <Send className="w-5 h-5" />
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
             </button>
           </form>
         </div>
@@ -150,9 +195,15 @@ export default function AvailabilityManagerPage() {
           <button
             key={index}
             onClick={() => {
-              setInputText(suggestion);
+              if (!isLoading) {
+                setInputText(suggestion);
+                // Cannot call handleSendMessage directly here because state update is async, 
+                // but we can let the user submit it or we can submit it right away using the string.
+                // To submit it right away, we could modify handleSendMessage to take a string arg, 
+                // or just let it be populated in the input box.
+              }
             }}
-            className="p-4 bg-[#1E1E1E] backdrop-blur-sm rounded-xl shadow-md hover:shadow-lg hover:shadow-[#7C3AED]/10 transition-all border border-[#2A2A2A] text-left text-sm text-[#EDEDED] hover:bg-[#171717]"
+            className="p-4 bg-card backdrop-blur-sm rounded-xl shadow-md hover:shadow-lg hover:shadow-primary/10 transition-all border border-border text-left text-sm text-foreground hover:bg-background"
           >
             {suggestion}
           </button>

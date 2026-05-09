@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (username: string, email: string, password: string) => Promise<void>;
   completeOAuth: (payload: { token: string; name: string; email: string }) => void;
+  updateUser: (updates: { name?: string; email?: string }) => void;
   logout: () => void;
 }
 
@@ -68,6 +69,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistSession(payload.token, { name: payload.name, email: payload.email });
   };
 
+  const updateUser = (updates: { name?: string; email?: string }) => {
+    if (!user) return;
+    const nextUser = { ...user, ...updates };
+    setUser(nextUser);
+    if (token) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token, user: nextUser }));
+    }
+  };
+
   const logout = () => {
     setIsAuthenticated(false);
     setUser(null);
@@ -76,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, login, signup, completeOAuth, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, login, signup, completeOAuth, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,6 @@
 import express from "express";
 import { getAccountAndAccessToken, getRequestedUserEmail } from "../services/googleService.js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const router = express.Router();
 
@@ -133,17 +134,54 @@ router.post("/:message_id/mark-read", (req, res) => {
   handler().catch(() => res.status(500).json({ detail: "Failed to update read state" }));
 });
 
+let genAI;
+
+router.post("/:message_id/summary", async (req, res) => {
+  try {
+    if (!genAI) {
+      genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+    }
+    const snippet = String(req.body?.snippet || "");
+    const subject = String(req.body?.subject || "");
+    const from = String(req.body?.from || "");
+    
+    if (!snippet && !subject) {
+      return res.json({ summary: "No content available to summarize." });
+    }
+
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const prompt = `You are a smart email assistant. Provide a concise, 1-2 sentence summary of the following email. Focus on the core message or any required actions.\n\nFrom: ${from}\nSubject: ${subject}\nSnippet: ${snippet}`;
+    
+    const result = await model.generateContent(prompt);
+
+    return res.json({ summary: result.response.text() || "Could not generate summary." });
+  } catch (error) {
+    console.error("Gemini Summary Error:", error);
+    return res.json({ summary: `Error generating AI summary: ${error.message}` });
+  }
+});
+
 router.post("/:message_id/draft-reply", async (req, res) => {
   const { message_id: messageId } = req.params;
-  const prompt = String(req.body?.prompt || "").trim();
+  const promptText = String(req.body?.prompt || "").trim();
 
   try {
-    if (process.env.OPENAI_API_KEY && prompt) {
-      return res.json({ draft: `Draft for ${messageId}: ${prompt}` });
+    if (!genAI) {
+      genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
     }
-    return res.json({ draft: "Draft: Thanks for the update. I will follow up shortly." });
-  } catch (_error) {
-    return res.json({ draft: "Draft: Thanks for the update. I will follow up shortly." });
+
+    if (promptText) {
+      const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+      const prompt = `You are a smart email assistant. Generate a professional and concise email reply based on the following instructions from the user:\n\n${promptText}`;
+      
+      const result = await model.generateContent(prompt);
+
+      return res.json({ draft: result.response.text() || "Could not generate draft." });
+    }
+    return res.json({ draft: "Please provide a prompt to generate a draft." });
+  } catch (error) {
+    console.error("Gemini Draft Error:", error);
+    return res.json({ draft: "Error generating draft. Please check your API key." });
   }
 });
 

@@ -52,10 +52,10 @@ export default function DashboardPage() {
   const metrics = useMemo(() => {
     if (!data) return [];
     return [
-      { label: 'Emails Today', value: String(data.metrics.emailsToday), icon: Mail, color: 'from-[#7C3AED] to-[#8B5CF6]' },
-      { label: 'Pending Assignments', value: String(data.metrics.pendingAssignments), icon: BookOpen, color: 'from-[#8B5CF6] to-[#7C3AED]' },
-      { label: 'Scheduled Meetings', value: String(data.metrics.scheduledMeetings), icon: Calendar, color: 'from-[#7C3AED] to-[#6D28D9]' },
-      { label: 'Productivity Score', value: `${data.metrics.productivityScore}%`, icon: TrendingUp, color: 'from-[#8B5CF6] to-[#6D28D9]' },
+      { label: 'Emails Today', value: String(data.metrics.emailsToday), icon: Mail, color: 'from-primary to-primary/80' },
+      { label: 'Pending Assignments', value: String(data.metrics.pendingAssignments), icon: BookOpen, color: 'from-primary/80 to-primary' },
+      { label: 'Scheduled Meetings', value: String(data.metrics.scheduledMeetings), icon: Calendar, color: 'from-primary to-primary' },
+      { label: 'Productivity Score', value: `${data.metrics.productivityScore}%`, icon: TrendingUp, color: 'from-primary/80 to-primary' },
     ];
   }, [data]);
 
@@ -83,8 +83,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 max-w-7xl">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#6D28D9] rounded-2xl p-8 text-white shadow-2xl relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#7C3AED]/20 to-[#8B5CF6]/20 backdrop-blur-sm"></div>
+      <div className="bg-gradient-to-r from-primary via-primary/90 to-primary rounded-2xl p-8 text-white shadow-2xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/80/20 backdrop-blur-sm"></div>
         <div className="relative z-10">
           <h1 className="text-4xl font-bold mb-2">
             {getCurrentGreeting()}, {user?.name || 'Student'}! 👋
@@ -101,7 +101,7 @@ export default function DashboardPage() {
       )}
 
       {error && (
-        <div className="text-[#C2410C]">{error}</div>
+        <div className="text-destructive">{error}</div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -110,7 +110,7 @@ export default function DashboardPage() {
           return (
             <div
               key={index}
-              className="bg-card rounded-2xl p-6 shadow-lg hover:shadow-2xl hover:shadow-[#7C3AED]/10 transition-all hover:-translate-y-1 border border-border"
+              className="bg-card rounded-2xl p-6 shadow-lg hover:shadow-2xl hover:shadow-primary/10 transition-all hover:-translate-y-1 border border-border"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className={`p-3 rounded-xl bg-gradient-to-br ${metric.color}`}>
@@ -129,7 +129,7 @@ export default function DashboardPage() {
         {/* Today's Tasks */}
         <div className="bg-card rounded-2xl p-6 shadow-lg border border-border">
           <div className="flex items-center gap-2 mb-6">
-            <Clock className="w-5 h-5 text-[#7C3AED]" />
+            <Clock className="w-5 h-5 text-primary" />
             <h2 className="text-xl font-bold text-foreground">Today's Tasks</h2>
           </div>
           <div className="space-y-4">
@@ -139,8 +139,8 @@ export default function DashboardPage() {
                 className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted transition-all cursor-pointer"
               >
                 <div className={`mt-1 w-2 h-2 rounded-full ${
-                  task.priority === 'high' ? 'bg-[#C2410C]' :
-                  task.priority === 'medium' ? 'bg-[#D97706]' : 'bg-[#8B5CF6]'
+                  task.priority === 'high' ? 'bg-destructive' :
+                  task.priority === 'medium' ? 'bg-secondary-warn' : 'bg-primary/80'
                 }`}></div>
                 <div className="flex-1">
                   <p className="font-medium text-foreground">{task.title}</p>
@@ -154,7 +154,7 @@ export default function DashboardPage() {
         {/* Upcoming Deadlines */}
         <div className="bg-card rounded-2xl p-6 shadow-lg border border-border">
           <div className="flex items-center gap-2 mb-6">
-            <AlertCircle className="w-5 h-5 text-[#8B5CF6]" />
+            <AlertCircle className="w-5 h-5 text-primary/80" />
             <h2 className="text-xl font-bold text-foreground">Upcoming Deadlines</h2>
           </div>
           <div className="space-y-5">
@@ -165,7 +165,7 @@ export default function DashboardPage() {
                     <p className="font-medium text-foreground">{item.title}</p>
                     <p className="text-sm text-muted-foreground">{item.subject}</p>
                   </div>
-                  <span className="text-xs font-semibold text-[#7C3AED] bg-[#7C3AED]/10 px-2 py-1 rounded-lg">
+                  <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded-lg">
                     {item.due}
                   </span>
                 </div>
@@ -182,9 +182,9 @@ export default function DashboardPage() {
         </div>
 
         {/* AI Suggestions */}
-        <div className="bg-gradient-to-br from-[#7C3AED]/10 to-[#8B5CF6]/10 rounded-2xl p-6 shadow-lg border border-[#7C3AED]/20">
+        <div className="bg-gradient-to-br from-primary/10 to-primary/80/10 rounded-2xl p-6 shadow-lg border border-primary/20">
           <div className="flex items-center gap-2 mb-6">
-            <CheckCircle className="w-5 h-5 text-[#7C3AED]" />
+            <CheckCircle className="w-5 h-5 text-primary" />
             <h2 className="text-xl font-bold text-foreground">AI Suggestions</h2>
           </div>
           <div className="space-y-4">
@@ -193,7 +193,7 @@ export default function DashboardPage() {
                 key={index}
                 className="flex items-start gap-3 p-3 bg-card rounded-xl border border-border"
               >
-                <div className="mt-1 w-2 h-2 rounded-full bg-[#7C3AED]"></div>
+                <div className="mt-1 w-2 h-2 rounded-full bg-primary"></div>
                 <p className="text-sm text-foreground">{suggestion}</p>
               </div>
             ))}
@@ -209,7 +209,7 @@ export default function DashboardPage() {
             <div key={`${day.label}-${day.dateNumber}`} className="text-center">
               <p className="text-xs text-muted-foreground mb-2">{day.label}</p>
               <div className={`h-16 rounded-xl flex items-center justify-center ${
-                day.isToday ? 'bg-gradient-to-br from-[#7C3AED] to-[#8B5CF6] text-white font-bold shadow-lg shadow-[#7C3AED]/30' : 'bg-muted text-muted-foreground'
+                day.isToday ? 'bg-gradient-to-br from-primary to-primary/80 text-white font-bold shadow-lg shadow-primary/30' : 'bg-muted text-muted-foreground'
               }`}>
                 <span className="text-sm">{day.dateNumber}</span>
               </div>

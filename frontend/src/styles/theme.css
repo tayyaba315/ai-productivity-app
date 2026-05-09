@@ -89,6 +89,39 @@
   --chart-5: #EA580C;
 }
 
+.theme-green {
+  --primary-button: #65a30d;
+  --primary-hover: #84cc16;
+  --primary-active: #4d7c0f;
+  --primary: #65a30d;
+  --ring: #65a30d;
+  --chart-1: #65a30d;
+  --chart-2: #84cc16;
+  --chart-3: #4d7c0f;
+}
+
+.theme-pink {
+  --primary-button: #e11d48;
+  --primary-hover: #f43f5e;
+  --primary-active: #be123c;
+  --primary: #e11d48;
+  --ring: #e11d48;
+  --chart-1: #e11d48;
+  --chart-2: #f43f5e;
+  --chart-3: #be123c;
+}
+
+.theme-blue {
+  --primary-button: #2563eb;
+  --primary-hover: #3b82f6;
+  --primary-active: #1d4ed8;
+  --primary: #2563eb;
+  --ring: #2563eb;
+  --chart-1: #2563eb;
+  --chart-2: #3b82f6;
+  --chart-3: #1d4ed8;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
