@@ -23,25 +23,18 @@ dotenv.config();
 
 const app = express();
 
-// CORS — update FRONTEND_URL after deploying frontend
+// CORS
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*'
+  origin: [
+    'https://my-frontend-three-xi.vercel.app',
+    'http://localhost:5173'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-email']
 }));
+
 app.use(express.json());
-
-// Cached DB connection for serverless
-let isConnected = false;
-const initDB = async () => {
-  if (!isConnected) {
-    await connectDB();
-    isConnected = true;
-  }
-};
-
-app.use(async (req, res, next) => {
-  await initDB();
-  next();
-});
 
 app.get("/", (_req, res) => {
   res.json({ message: "Align AI MERN backend running" });
@@ -64,12 +57,12 @@ app.use("/api/study", studyRoutes);
 app.use("/api/auth", authGoogleRoutes);
 app.use("/api/settings", settingsRoutes);
 
-// Only listen locally, NOT on Vercel
-if (process.env.NODE_ENV !== 'production') {
+// Connect to DB then start server
+connectDB().then(() => {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
-}
+});
 
-export default app;  // ← Vercel needs this
+export default app;
