@@ -20,12 +20,28 @@ import authGoogleRoutes from "./routes/authGoogleRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 
 dotenv.config();
-connectDB();
 
 const app = express();
 
-app.use(cors());
+// CORS — update FRONTEND_URL after deploying frontend
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*'
+}));
 app.use(express.json());
+
+// Cached DB connection for serverless
+let isConnected = false;
+const initDB = async () => {
+  if (!isConnected) {
+    await connectDB();
+    isConnected = true;
+  }
+};
+
+app.use(async (req, res, next) => {
+  await initDB();
+  next();
+});
 
 app.get("/", (_req, res) => {
   res.json({ message: "Align AI MERN backend running" });
@@ -48,7 +64,12 @@ app.use("/api/study", studyRoutes);
 app.use("/api/auth", authGoogleRoutes);
 app.use("/api/settings", settingsRoutes);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Only listen locally, NOT on Vercel
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+export default app;  // ← Vercel needs this
